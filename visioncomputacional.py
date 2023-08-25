@@ -2,40 +2,51 @@ import numpy as np
 from matplotlib import pyplot as plt
 import cv2 as cv
 
+#variables 
+esquinas = []
+
+#funciones
+def esquinasCircuito (event,x,y,flags, param):
+  if event == cv.EVENT_LBUTTONDOWN:
+    esquinas.append((x,y))
+    cv.imshow('Original', frame)
+
 #captura de video
 captura = cv.VideoCapture(0)
 
+#Eventos
+cv.namedWindow('Original')
+cv.setMouseCallback('Original', esquinasCircuito)
+
 while (captura.isOpened()):
   ret, frame = captura.read()
- 
   frame = cv.flip(frame, 1)     #eliminar efecto espejo
 
-  #convertir imagen a escala de grises
-  gray = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
+  if not ret:   #si no retorna imagen se rompe el ciclo
+    break
 
-  #Filtrado de ruido
-  blur = cv.GaussianBlur(gray, (7,7),0) 
+  if len(esquinas) == 4: # hasta que no seleccione las 4 esquinas no entra al ciclo
+    
+    gray = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)  #convertir imagen a escala de grises
+    #Mostrar
+    cv.imshow('Original', frame)
+    cv.imshow('Escala de grises', gray)
+  else:
+    for esquina in esquinas: #mostrar los puntos
+      cv.circle(frame, esquina, 5, (0,0,255),-1)
+    cv.imshow('Original', frame)
+
+  #exit
+  if cv.waitKey(1) & 0xFF == ord('q'):
+    break
+
+#Difuninar el ruido
+#blur = cv.GaussianBlur(gray, (7,7),0) 
   
-  #threshold
-  threshold = cv.adaptiveThreshold (blur,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,11,5)  
+#limite y binarizacion 
+#threshold = cv.adaptiveThreshold (blur,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,11,5)  
   
-  #Deteccion de bordes
-  edge = cv.Canny(threshold, 50 ,100) 
-
-  if ret == True:
-    # bordes
-    cv.imshow('Bordes', edge)
-
-    #desenfoqur
-    cv.imshow('Desenfoque', blur)
-
-    #original
-    cv.imshow('Origial', frame)
-
-    # si se preciona la tecla e se detiene
-    if cv.waitKey(1) & 0xFF == ord('q'):
-      break
-  else: break
-
+#Deteccion de bordes
+#canny = cv.Canny(threshold, 100 ,200) 
 captura.release()
 cv.destroyAllWindows()
