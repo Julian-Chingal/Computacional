@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import numpy as np
 import cv2 as cv
 
@@ -44,7 +45,7 @@ while (cap.isOpened()):
     canny = cv.Canny(threshold, 100 ,200) 
 
     #Show
-    cv.imshow('Original', frame)
+    cv.imshow('Circuito', frame)
     cv.imshow('Escala de grises', canny)
     cv.imshow('Imagen recortada', cutImage)
   else:
