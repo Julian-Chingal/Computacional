@@ -34,12 +34,13 @@ cap = cv.VideoCapture(1)
 cap.set(3,500)
 cap.set(4,500)
 
-#Events
+#Events ----------------------------------------------------------------------------------------------------
 cv.namedWindow('Original')
 cv.setMouseCallback('Original', circuitPoints)
 cv.namedWindow('Parameters')
-cv.createTrackbar("Threshold1", "Parameters",150,255, empty)
-cv.createTrackbar("Threshold2", "Parameters",255,255, empty)
+cv.resizeWindow('Parameters', 400,150)
+cv.createTrackbar("Threshold1", "Parameters", 100, 255, empty)
+cv.createTrackbar("Threshold2", "Parameters", 150, 255, empty)
 cv.createTrackbar("Area", "Parameters",5000,40000, empty)
 
 #stage capture -------------------------------------------------------------------------------------------
@@ -57,7 +58,7 @@ while (cap.isOpened()):
 
     cutImage = cv.warpPerspective(frame, homography, (frame.shape[1], frame.shape[0]))
 
-    #convertir imagen a escala de grises
+    #grayscale
     gray = cv.cvtColor(cutImage,cv.COLOR_BGR2GRAY)  
 
     #threshold and binary
@@ -67,7 +68,6 @@ while (cap.isOpened()):
     blur = cv.GaussianBlur(binary, (7,7),1) 
 
     #Canny detection
-    # canny = cv.Canny(blur, 100 ,150)
     threshold1  = cv.getTrackbarPos("Threshold1", "Parameters")
     threshold2  = cv.getTrackbarPos("Threshold2", "Parameters")
     canny = cv.Canny(blur, threshold1 ,threshold2)
@@ -78,6 +78,7 @@ while (cap.isOpened()):
     #Show
     cv.imshow('Original', frame)
     cv.imshow('Cut', cutImage)
+    cv.imshow('canny', canny)
   else:
     for corner in srcPoints: #mostrar los puntos
       cv.circle(frame, corner, 2, (0,0,255),-1)
