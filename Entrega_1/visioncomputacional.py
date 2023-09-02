@@ -3,17 +3,17 @@ import cv2 as cv
 
 #variables 
 srcPoints = []
-dstPoints = np.float32([[100, 100], [100, 400], [400, 400], [400, 100]])
 
 #functions ------------------------------------------------------------------------------
-def circuitPoints (event,x,y,flags, param):
+def getPoints (event,x,y,flags, param):
   if event == cv.EVENT_LBUTTONDOWN:
     srcPoints.append((x,y))
+    print("Punto agregado: ", x, y)
 
 def DrawContours(canny):
   #Contours
     contours, _  = cv.findContours(canny,cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    
+
     for contorno in contours:
       area = cv.contourArea(contorno)
       areamin = cv.getTrackbarPos("Area", "Parameters")
@@ -23,20 +23,16 @@ def DrawContours(canny):
         x, y, w, h = cv.boundingRect(approx)
         cv.rectangle(cutImage, (x, y), (x + w, y + h), (0, 255, 0), 2)
         cv.putText(cutImage, 'Ancho: ' + str(int(w)), (x + w +20, y + 20), cv.FONT_HERSHEY_COMPLEX, 0.7, (0, 255, 0), 2)
-        
-        #texto = f'Ancho: {w} , Alto: {h} pixels'
 
 def empty(a):
   pass
 
 #video capture
-cap = cv.VideoCapture(1)
-cap.set(3,500)
-cap.set(4,500)
+cap = cv.VideoCapture(0)
 
 #Events ----------------------------------------------------------------------------------------------------
 cv.namedWindow('Original')
-cv.setMouseCallback('Original', circuitPoints)
+cv.setMouseCallback('Original', getPoints)
 cv.namedWindow('Parameters')
 cv.resizeWindow('Parameters', 400,150)
 cv.createTrackbar("Threshold1", "Parameters", 100, 255, empty)
@@ -52,11 +48,17 @@ while (cap.isOpened()):
     break
 
   if len(srcPoints) == 4: # hasta que no seleccione los 4 
-  
-   #perspective transform
-    homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints, cv.RANSAC, 5.0)
 
-    cutImage = cv.warpPerspective(frame, homography, (frame.shape[1], frame.shape[0]))
+    #Points
+    srcPoints = np.array(srcPoints)
+    dstPoints = np.array([[0, 0], [frame.shape[1], 0], [frame.shape[1], frame.shape[0]], [0, frame.shape[0]]], dtype=np.float32)
+
+    #perspective transform
+    homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
+
+    img_undistorted = cv.undistort(frame, np.eye(3), np.zeros(5)) # Corregir distorsión no lineal
+
+    cutImage = cv.warpPerspective(img_undistorted, homography, (frame.shape[1], frame.shape[0]))
 
     #grayscale
     gray = cv.cvtColor(cutImage,cv.COLOR_BGR2GRAY)  
