@@ -5,13 +5,15 @@ import cv2 as cv
 srcPoints = []
 cutImage = None
 
+#CIRCULOS DE COLOR AZUL Y ROJO PARA EL PUNTO
+
 #functions ------------------------------------------------------------------------------
 def getPoints (event,x,y,flags, param):
   if event == cv.EVENT_LBUTTONDOWN:
     srcPoints.append((x,y))
     print("Punto agregado: ", x, y)
 
-def DrawContours(canny):
+def DrawContours(blur):
   #Canny detection
     threshold1  = cv.getTrackbarPos("Threshold1", "Parameters")
     threshold2  = cv.getTrackbarPos("Threshold2", "Parameters")
@@ -93,7 +95,8 @@ while (cap.isOpened()):
     for corner in srcPoints: #mostrar los puntos
       cv.circle(frame, corner, 2, (0,0,255),-1)
     cv.imshow('Original', frame)
-
+  
+  print()
   #exit
   if cv.waitKey(1) & 0xFF == ord('q'):
     break
