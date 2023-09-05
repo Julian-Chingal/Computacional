@@ -7,10 +7,11 @@ import cv2 as cv
 window = None
 canvas = None
 srcPoints = []
+srcCircle = []
 cutImage = None
 
 #video capture
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(2)
 
 #functions
 def interface():
@@ -21,17 +22,18 @@ def interface():
     window.geometry("720x500")
     window.title("Captura")
 
-    canvas = Canvas(window, width= "700" ,height= "400")
+    canvas = Canvas(window, width= "500" ,height= "400")
     canvas.pack()
     
     capture()
 
-    canvas.bind("<Button-1>", getPoints)
-
+    canvas.bind("<Button-1>", getPoints)    
+    
     window.mainloop()
+    
+    
 
     cap.release()
-    cv.destroyAllWindows()
 
 def showCapture(capt,canvas):
     #Convertir frame a un formato compatible
@@ -49,11 +51,14 @@ def capture():
     ret,frame = cap.read()
     if ret:   
         showCapture(frame,canvas)
-    
+        if len(srcPoints) == 4:
+
+            blur = Preprocess(frame)
+            showCapture(blur,canvas)
     window.after(10, capture)
 
 def getPoints(event):
-    global canvas,srcPoints
+    global canvas,srcPoints, srcCircle
 
     if len(srcPoints) < 4:
         x = event.x
@@ -61,11 +66,9 @@ def getPoints(event):
 
         srcPoints.append((x,y))
         print("Punto agregado: ", x, y)
-
-        #Dibujar los puntos
-        srcOval = canvas.create_oval(x-3, y-3, x+3, y+3, fill= "red")
-
-        srcOval
+        
+        circle_id = canvas.create_oval(x - 3, y - 3, x + 3, y + 3, fill="red", tags="points")
+        srcCircle.append(circle_id)
 
 def Preprocess(frame):
   global srcPoints
@@ -88,6 +91,6 @@ def Preprocess(frame):
   #Gaussian blur
   blur = cv.GaussianBlur(binary, (7,7),1) 
   
-  return blur 
+  return img 
 
 interface()

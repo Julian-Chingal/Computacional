@@ -4,6 +4,8 @@ import cv2 as cv
 #variables 
 srcPoints = []
 cutImage = None
+wewidth_cut = None
+High_cut = None
 
 #CIRCULOS DE COLOR AZUL Y ROJO PARA EL PUNTO
 
@@ -47,6 +49,11 @@ def Preprocess(frame):
 
   cutImage = cv.warpPerspective(img_undistorted, homography, (frame.shape[1], frame.shape[0]))
 
+  wewidth_cut = cutImage.shape[1]
+  High_cut = cutImage.shape[0]
+
+  print("ancho: " , wewidth_cut, " Alto: ", High_cut)
+   
   #grayscale
   gray = cv.cvtColor(cutImage,cv.COLOR_BGR2GRAY)  
 
@@ -62,7 +69,7 @@ def empty(a):
   pass
 
 #video capture
-cap = cv.VideoCapture(1)
+cap = cv.VideoCapture(2)
 
 #Events ----------------------------------------------------------------------------------------------------
 cv.namedWindow('Original')
@@ -82,7 +89,7 @@ while (cap.isOpened()):
     break
 
   if len(srcPoints) == 4: # hasta que no seleccione los 4 
-
+    #Preproces
     blur  = Preprocess(frame)
 
     #contours
@@ -91,6 +98,7 @@ while (cap.isOpened()):
     #Show
     cv.imshow('Cut', cutImage)
     cv.imshow('canny', canny)
+    cv.imshow('Blur', blur)
   else:
     for corner in srcPoints: #mostrar los puntos
       cv.circle(frame, corner, 2, (0,0,255),-1)
