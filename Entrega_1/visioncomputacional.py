@@ -3,6 +3,8 @@ import cv2 as cv
 
 #variables 
 srcPoints = []
+srcStart = None
+srcFinish = None
 cutImage = None
 wewidth_cut = None
 High_cut = None
@@ -14,7 +16,7 @@ def getPoints (event,x,y,flags, param):
     print("Punto agregado: ", x, y)
 
 def refPoints():
-  global cutImage
+  global cutImage, srcStart, srcFinish
 
   #saturar la imagen 
   hsv_frame = cv.cvtColor(cutImage, cv.COLOR_BGR2HSV)
@@ -38,15 +40,15 @@ def refPoints():
     # Dibuja los círculos rojos encontrados
     circles_red = np.uint16(np.around(circles_red))
     for circle in circles_red[0, :]:
-      center = (circle[0], circle[1])
-      cv.circle(cutImage, center, circle[2], (0, 0, 255), 2)
+      srcStart = (circle[0], circle[1])
+      cv.circle(cutImage, srcStart, circle[2], (0, 0, 255), 2)
 
   if circles_blue is not None:
     # Dibuja los círculos azules encontrados
     circles_blue = np.uint16(np.around(circles_blue))
     for circle in circles_blue[0, :]:
-      center = (circle[0], circle[1])
-      cv.circle(cutImage, center, circle[2], (255, 0, 0), 2)
+      srcFinish = (circle[0], circle[1])
+      cv.circle(cutImage, srcFinish, circle[2], (255, 0, 0), 2)
 
 def DrawContours(canny):
     global cutImage
