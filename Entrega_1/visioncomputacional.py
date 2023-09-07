@@ -5,11 +5,15 @@ import cv2 as cv
 srcPoints = []
 srcStart = None
 srcFinish = None
+#--------
 cutImage = None
+gray = None
+blur = None
+#---------
 wewidth_cut = None
 High_cut = None
 
-#functions ------------------------------------------------------------------------------
+#functions Process------------------------------------------------------------------------------
 def getPoints (event,x,y,flags, param):
   if event == cv.EVENT_LBUTTONDOWN:
     srcPoints.append((x,y))
@@ -69,7 +73,7 @@ def DrawContours(canny):
     return canny
 
 def Preprocess(frame):
-  global srcPoints, cutImage
+  global srcPoints, cutImage, gray, blur
   #Points
   srcPoints = np.array(srcPoints)
   dstPoints = np.array([[0, 0], [frame.shape[1], 0], [frame.shape[1], frame.shape[0]], [0, frame.shape[0]]], dtype=np.float32)
@@ -77,6 +81,9 @@ def Preprocess(frame):
   homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
   img_undistorted = cv.undistort(frame, np.eye(3), np.zeros(5)) # Corregir distorsión no lineal
   cutImage = cv.warpPerspective(img_undistorted, homography, (frame.shape[1], frame.shape[0]))
+
+  #ajustar la perspectiva a una matriz de 100x100 pixeles
+  cutImage = cv.resize(cutImage, (100,100))
 
   #grayscale
   gray = cv.cvtColor(cutImage,cv.COLOR_BGR2GRAY)  
@@ -86,26 +93,26 @@ def Preprocess(frame):
 
   #Gaussian blur
   blur = cv.GaussianBlur(binary, (7,7),1) 
-  
-  return blur 
 
 def empty(a):
   pass
-#---------------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------
 
+#Genetic ----------------------------------------------------------------------------------------
 #video capture
-cap = cv.VideoCapture(2)
+cap = cv.VideoCapture(1)
 
-#Events ----------------------------------------------------------------------------------------------------
+#Events -----------------------------------------------------------------------------------------
 cv.namedWindow('Original')
 cv.setMouseCallback('Original', getPoints)
+#--
 cv.namedWindow('Parameters')
 cv.resizeWindow('Parameters', 400,150)
 cv.createTrackbar("Threshold1", "Parameters", 100, 255, empty)
 cv.createTrackbar("Threshold2", "Parameters", 150, 255, empty)
 cv.createTrackbar("Area", "Parameters",5000,40000, empty)
 
-#start  -------------------------------------------------------------------------------------------
+#start  -----------------------------------------------------------------------------------------
 while (cap.isOpened()):
   ret, frame = cap.read()
   frame = cv.flip(frame, 1)     #eliminar efecto espejo
@@ -114,8 +121,14 @@ while (cap.isOpened()):
     break
 
   if len(srcPoints) == 4: # hasta que no seleccione los 4 
+    #--crear ventanas y reajustar tamaño
+    cv.namedWindow('Concat', cv.WINDOW_NORMAL)
+    cv.resizeWindow('Concat', (1200,400))
+    cv.namedWindow('Cut', cv.WINDOW_NORMAL)
+    cv.resizeWindow('Cut', (400,400))
+
     #Preproces
-    blur  = Preprocess(frame)
+    Preprocess(frame)
 
     #Canny detection
     threshold1  = cv.getTrackbarPos("Threshold1", "Parameters")
@@ -127,9 +140,10 @@ while (cap.isOpened()):
     DrawContours(canny)
 
     #Show
+    contac = cv.hconcat([gray, blur, canny])
     cv.imshow('Cut', cutImage)
-    cv.imshow('canny', canny)
-    cv.imshow('Blur', blur)
+    cv.imshow('Concat', contac)
+  
   else:
     for corner in srcPoints: #mostrar los puntos
       cv.circle(frame, corner, 2, (0,0,255),-1)
