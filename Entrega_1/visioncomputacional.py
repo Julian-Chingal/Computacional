@@ -1,5 +1,6 @@
 import numpy as np
 import cv2 as cv
+import matplotlib.pyplot as plt
 
 #variables 
 srcPoints = []
@@ -39,9 +40,10 @@ def refPoints():
   # Encuentra círculos en las máscaras de color rojo y azul
   circles_red = cv.HoughCircles(mask_red, cv.HOUGH_GRADIENT, dp=1, minDist=20, param1=50, param2=30, minRadius=0, maxRadius=0)
   circles_blue = cv.HoughCircles(mask_blue, cv.HOUGH_GRADIENT, dp=1, minDist=20, param1=50, param2=30, minRadius=0, maxRadius=0)
-
+  
   if circles_red is not None:
     # Dibuja los círculos rojos encontrados
+    print("rojo")
     circles_red = np.uint16(np.around(circles_red))
     for circle in circles_red[0, :]:
       srcStart = (circle[0], circle[1])
@@ -74,16 +76,20 @@ def DrawContours(canny):
 
 def Preprocess(frame):
   global srcPoints, cutImage, gray, blur
+
+  w = 100
+  h = 100
+
   #Points
   srcPoints = np.array(srcPoints)
-  dstPoints = np.array([[0, 0], [frame.shape[1], 0], [frame.shape[1], frame.shape[0]], [0, frame.shape[0]]], dtype=np.float32)
+  dstPoints = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32) #imagen definir tamaño
+
   #perspective transform
   homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
   img_undistorted = cv.undistort(frame, np.eye(3), np.zeros(5)) # Corregir distorsión no lineal
-  cutImage = cv.warpPerspective(img_undistorted, homography, (frame.shape[1], frame.shape[0]))
+  cutImage = cv.warpPerspective(img_undistorted, homography, (h, w))
 
-  #ajustar la perspectiva a una matriz de 100x100 pixeles
-  cutImage = cv.resize(cutImage, (100,100))
+  cutImage = cv.resize(cutImage, None, fx=4 , fy=4 , interpolation= cv.INTER_LINEAR)
 
   #grayscale
   gray = cv.cvtColor(cutImage,cv.COLOR_BGR2GRAY)  
@@ -96,9 +102,18 @@ def Preprocess(frame):
 
 def empty(a):
   pass
-#------------------------------------------------------------------------------------------------
 
 #Genetic ----------------------------------------------------------------------------------------
+def drawCircuit(blur):
+  # Mostrar la imagen binarizada
+  plt.imshow(blur, cmap='gray')  # 'cmap' especifica la paleta de colores (en este caso, blanco y negro)
+  plt.title('Imagen Binarizada')
+  plt.axis('off')  # Opcional: para ocultar los ejes
+  plt.show()
+
+def AG():
+  cann = 1
+
 #video capture
 cap = cv.VideoCapture(1)
 
@@ -121,11 +136,6 @@ while (cap.isOpened()):
     break
 
   if len(srcPoints) == 4: # hasta que no seleccione los 4 
-    #--crear ventanas y reajustar tamaño
-    cv.namedWindow('Concat', cv.WINDOW_NORMAL)
-    cv.resizeWindow('Concat', (1200,400))
-    cv.namedWindow('Cut', cv.WINDOW_NORMAL)
-    cv.resizeWindow('Cut', (400,400))
 
     #Preproces
     Preprocess(frame)
@@ -138,7 +148,9 @@ while (cap.isOpened()):
     #contours
     refPoints()
     DrawContours(canny)
-
+    
+    # router
+    drawCircuit(blur)
     #Show
     contac = cv.hconcat([gray, blur, canny])
     cv.imshow('Cut', cutImage)
