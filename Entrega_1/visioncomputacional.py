@@ -10,9 +10,10 @@ srcFinish = None
 cutImage = None
 gray = None
 blur = None
+canny = None
 #---------
-wewidth_cut = None
-High_cut = None
+weidth_cut = 100
+height_cut = 100
 
 #functions Process------------------------------------------------------------------------------
 def getPoints (event,x,y,flags, param):
@@ -20,7 +21,7 @@ def getPoints (event,x,y,flags, param):
     srcPoints.append((x,y))
     print("Punto agregado: ", x, y)
 
-def refPoints():
+def refPoints():                           #Corregir 
   global cutImage, srcStart, srcFinish
 
   #saturar la imagen 
@@ -56,8 +57,8 @@ def refPoints():
       srcFinish = (circle[0], circle[1])
       cv.circle(cutImage, srcFinish, circle[2], (255, 0, 0), 2)
 
-def DrawContours(canny):
-    global cutImage
+def DrawContours():
+    global cutImage,canny, height_cut, weidth_cut
   #Contours
     contours, _  = cv.findContours(canny,cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
@@ -68,28 +69,23 @@ def DrawContours(canny):
         peri = cv.arcLength(contorno, True)
         approx = cv.approxPolyDP(contorno, 0.02 * peri ,True)
         x, y, w, h = cv.boundingRect(approx)
-        cv.rectangle(cutImage, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv.putText(cutImage, 'Ancho: ' + str(int(w)), (x + w +20, y + 20), cv.FONT_HERSHEY_COMPLEX, 0.7, (0, 255, 0), 2)
-        cv.putText(cutImage, 'Alto: ' + str(int(h)), (x + w +20, y + 40), cv.FONT_HERSHEY_COMPLEX, 0.7, (0, 255, 0), 2)
-  
-    return canny
+        cv.rectangle(cutImage, (x, y), (x + w, y + h), (0, 255, 0), 1)
+        # cv.putText(cutImage, 'Ancho: ' + str(int(w)), (x + w +20, y + 20), cv.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0),2)
+        # cv.putText(cutImage, 'Alto: ' + str(int(h)), (x + w +20, y + 40), cv.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
 def Preprocess(frame):
-  global srcPoints, cutImage, gray, blur
-
-  w = 100
-  h = 100
+  global srcPoints, cutImage, gray, blur, height_cut, weidth_cut, canny
 
   #Points
   srcPoints = np.array(srcPoints)
-  dstPoints = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32) #imagen definir tamaño
+  dstPoints = np.array([[0, 0], [weidth_cut, 0], [weidth_cut, height_cut], [0, height_cut]], dtype=np.float32) #imagen definir tamaño
 
   #perspective transform
   homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
   img_undistorted = cv.undistort(frame, np.eye(3), np.zeros(5)) # Corregir distorsión no lineal
-  cutImage = cv.warpPerspective(img_undistorted, homography, (h, w))
+  cutImage = cv.warpPerspective(img_undistorted, homography, (height_cut, weidth_cut))
 
-  cutImage = cv.resize(cutImage, None, fx=4 , fy=4 , interpolation= cv.INTER_LINEAR)
+  cutImage = cv.resize(cutImage, None, fx=4 , fy=4 , interpolation= cv.INTER_LINEAR)  #esto es para escalar la imagen recortada
 
   #grayscale
   gray = cv.cvtColor(cutImage,cv.COLOR_BGR2GRAY)  
@@ -100,15 +96,24 @@ def Preprocess(frame):
   #Gaussian blur
   blur = cv.GaussianBlur(binary, (7,7),1) 
 
+  #Canny detection
+  canny = cv.Canny(blur, 100 ,150)
+
 def empty(a):
   pass
 
 #Genetic ----------------------------------------------------------------------------------------
 def drawCircuit(blur):
-  # Mostrar la imagen binarizada
-  plt.imshow(blur, cmap='gray')  # 'cmap' especifica la paleta de colores (en este caso, blanco y negro)
+  # recuperar tamaño original
+  blur = cv.resize(blur, None, fx=1/4, fy=1/4, interpolation=cv.INTER_LINEAR)
+
+  # Crear una figura y un conjunto de subtramas
+  fig, ax = plt.subplots()
+
+  ax.imshow(blur, cmap= 'gray',vmin=0, vmax=1)
+
+  plt.axis('off') 
   plt.title('Imagen Binarizada')
-  plt.axis('off')  # Opcional: para ocultar los ejes
   plt.show()
 
 def AG():
@@ -122,9 +127,7 @@ cv.namedWindow('Original')
 cv.setMouseCallback('Original', getPoints)
 #--
 cv.namedWindow('Parameters')
-cv.resizeWindow('Parameters', 400,150)
-cv.createTrackbar("Threshold1", "Parameters", 100, 255, empty)
-cv.createTrackbar("Threshold2", "Parameters", 150, 255, empty)
+cv.resizeWindow('Parameters', 400,50)
 cv.createTrackbar("Area", "Parameters",5000,40000, empty)
 
 #start  -----------------------------------------------------------------------------------------
@@ -140,17 +143,13 @@ while (cap.isOpened()):
     #Preproces
     Preprocess(frame)
 
-    #Canny detection
-    threshold1  = cv.getTrackbarPos("Threshold1", "Parameters")
-    threshold2  = cv.getTrackbarPos("Threshold2", "Parameters")
-    canny = cv.Canny(blur, threshold1 ,threshold2)
-    
     #contours
     refPoints()
-    DrawContours(canny)
+    DrawContours()
     
     # router
     drawCircuit(blur)
+
     #Show
     contac = cv.hconcat([gray, blur, canny])
     cv.imshow('Cut', cutImage)
