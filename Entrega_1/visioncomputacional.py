@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+import random
 
 #variables 
 srcPoints = []
@@ -24,7 +25,7 @@ def getPoints (event,x,y,flags, param):
 def refPoints():                           #Corregir 
   global cutImage, srcStart, srcFinish
 
-  #saturar la imagen 
+  #saturar la img 
   hsv_frame = cv.cvtColor(cutImage, cv.COLOR_BGR2HSV)
 
   #Definir rangos de color
@@ -78,14 +79,14 @@ def Preprocess(frame):
 
   #Points
   srcPoints = np.array(srcPoints)
-  dstPoints = np.array([[0, 0], [weidth_cut, 0], [weidth_cut, height_cut], [0, height_cut]], dtype=np.float32) #imagen definir tamaño
+  dstPoints = np.array([[0, 0], [weidth_cut, 0], [weidth_cut, height_cut], [0, height_cut]], dtype=np.float32) #img definir tamaño
 
   #perspective transform
   homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
   img_undistorted = cv.undistort(frame, np.eye(3), np.zeros(5)) # Corregir distorsión no lineal
   cutImage = cv.warpPerspective(img_undistorted, homography, (height_cut, weidth_cut))
 
-  cutImage = cv.resize(cutImage, None, fx=4 , fy=4 , interpolation= cv.INTER_LINEAR)  #esto es para escalar la imagen recortada
+  cutImage = cv.resize(cutImage, None, fx=4 , fy=4 , interpolation= cv.INTER_LINEAR)  #esto es para escalar la img recortada
 
   #grayscale
   gray = cv.cvtColor(cutImage,cv.COLOR_BGR2GRAY)  
@@ -102,7 +103,7 @@ def Preprocess(frame):
 def empty(a):
   pass
 
-#Genetic ----------------------------------------------------------------------------------------
+#PLT ----------------------------------------------------------------------------------------
 def drawCircuit(blur):
   # recuperar tamaño original
   blur = cv.resize(blur, None, fx=1/4, fy=1/4, interpolation=cv.INTER_LINEAR)
@@ -116,8 +117,16 @@ def drawCircuit(blur):
   plt.title('Imagen Binarizada')
   plt.show()
 
+#Genetic ----------------------------------------------------------------------------------------
+def routes(img):
+    return None
+
+def fitness(individuo):
+    distancia = sum(abs(x[0] - y[0]) + abs(x[1] - y[1]) for x, y in zip(individuo[:-1], individuo[1:]))
+    return 1.0 / (1.0 + distancia)  # Cuanto menor sea la distancia, mejor es el fitness
+
 def AG():
-  cann = 1
+    return None
 
 #video capture
 cap = cv.VideoCapture(1)
@@ -135,7 +144,7 @@ while (cap.isOpened()):
   ret, frame = cap.read()
   frame = cv.flip(frame, 1)     #eliminar efecto espejo
 
-  if not ret:   #si no retorna imagen se rompe el ciclo
+  if not ret:   #si no retorna img se rompe el ciclo
     break
 
   if len(srcPoints) == 4: # hasta que no seleccione los 4 
