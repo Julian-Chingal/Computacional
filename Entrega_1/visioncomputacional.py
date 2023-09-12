@@ -1,20 +1,21 @@
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
-import random
+from GA import AlgoritmoGenetico
 
 #variables 
 srcPoints = []
-srcStart = None
-srcFinish = None
+srcStart = (0, 0)
+srcFinish = (50, 50)
 #--------
 cutImage = None
 gray = None
 blur = None
 canny = None
+binary = None
 #---------
-weidth_cut = 100
-height_cut = 100
+weidth_cut = 50
+height_cut = 50
 
 #functions Process------------------------------------------------------------------------------
 def getPoints (event,x,y,flags, param):
@@ -59,7 +60,7 @@ def refPoints():                           #Corregir
       cv.circle(cutImage, srcFinish, circle[2], (255, 0, 0), 2)
 
 def DrawContours():
-    global cutImage,canny, height_cut, weidth_cut
+    global cutImage,canny
   #Contours
     contours, _  = cv.findContours(canny,cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
@@ -75,7 +76,7 @@ def DrawContours():
         # cv.putText(cutImage, 'Alto: ' + str(int(h)), (x + w +20, y + 40), cv.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 2)
 
 def Preprocess(frame):
-  global srcPoints, cutImage, gray, blur, height_cut, weidth_cut, canny
+  global srcPoints, cutImage, gray, blur, height_cut, weidth_cut, canny, binary
 
   #Points
   srcPoints = np.array(srcPoints)
@@ -105,8 +106,13 @@ def empty(a):
 
 #PLT ----------------------------------------------------------------------------------------
 def drawCircuit(blur):
-  # recuperar tamaño original
-  blur = cv.resize(blur, None, fx=1/4, fy=1/4, interpolation=cv.INTER_LINEAR)
+  global srcStart, srcFinish
+  blur = np.array(blur)
+
+  ga = AlgoritmoGenetico(blur, srcStart, srcFinish)
+  best_route = ga.ejecutar()
+  print("Mejor ruta encontrada:")
+  print(best_route)
 
   # Crear una figura y un conjunto de subtramas
   fig, ax = plt.subplots()
@@ -118,18 +124,10 @@ def drawCircuit(blur):
   plt.show()
 
 #Genetic ----------------------------------------------------------------------------------------
-def routes(img):
-    return None
 
-def fitness(individuo):
-    distancia = sum(abs(x[0] - y[0]) + abs(x[1] - y[1]) for x, y in zip(individuo[:-1], individuo[1:]))
-    return 1.0 / (1.0 + distancia)  # Cuanto menor sea la distancia, mejor es el fitness
-
-def AG():
-    return None
 
 #video capture
-cap = cv.VideoCapture(1)
+cap = cv.VideoCapture(0)
 
 #Events -----------------------------------------------------------------------------------------
 cv.namedWindow('Original')
@@ -163,6 +161,7 @@ while (cap.isOpened()):
     contac = cv.hconcat([gray, blur, canny])
     cv.imshow('Cut', cutImage)
     cv.imshow('Concat', contac)
+    cv.resizeWindow('Concat', 900,300)
   
   else:
     for corner in srcPoints: #mostrar los puntos
