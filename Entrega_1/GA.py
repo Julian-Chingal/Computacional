@@ -2,28 +2,50 @@ import numpy as np
 import random
 
 class AlgoritmoGenetico:
-    def __init__(self, imagen, punto_inicial, punto_final, tamano_poblacion = 50, probabilidad_mutacion = 0.001, max_generaciones = 100):
-        self.imagen = imagen
-        self.punto_inicial = punto_inicial
-        self.punto_final = punto_final
-        self.tamano_poblacion = tamano_poblacion
-        self.probabilidad_mutacion = probabilidad_mutacion
-        self.max_generaciones = max_generaciones
-        self.mejor_individuo = None
-        self.generacion_actual = 0
+    def __init__(self, imageBin, srcStart, srcFinish,num_restrictions, tam_population = 50, pro_mutation = 0.001, max_generations = 100):
+        self.imageBin = imageBin
+        self.srcStart = srcStart
+        self.srcFinish = srcFinish
+        self.num_restrictions = num_restrictions
+        self.tam_population = tam_population
+        self.pro_mutation = pro_mutation
+        self.max_generations = max_generations
+        self.max_size = 2
+        self.min_size = 1
     
-    def inicializar_poblacion(self):
+    def restriction(self):
+        cell_size = self.max_size + 1  # Tamaño de la celda basado en el tamaño máximo de restricción
+        cells_x = (self.imageBin.shape[0] - 1) // cell_size + 1
+        cells_y = (self.imageBin.shape[1] - 1) // cell_size + 1
+
+        for _ in range(self.num_restrictions):
+            size = random.randint(self.min_size, self.max_size)
+            cell_x = random.randint(0, cells_x - 1)
+            cell_y = random.randint(0, cells_y - 1)
+
+            x = cell_x * cell_size
+            y = cell_y * cell_size
+
+            if (
+                (x + size <= self.srcStart[0] or x >= self.srcStart[0] + 1 or y + size <= self.srcStart[1] or y >= self.srcStart[1] + 1)
+                and (x + size <= self.srcFinish[0] or x >= self.srcFinish[0] + 1 or y + size <= self.srcFinish[1] or y >= self.srcFinish[1] + 1)
+            ):
+                self.imageBin[x:x+size, y:y+size] = 1
+
+        return self.imageBin
+    
+    def initialize_population(self):
         poblacion = []
-        for _ in range(self.tamano_poblacion):
+        for _ in range(self.tam_population):
             individuo = self.generar_individuo()
             poblacion.append(individuo)
         return poblacion
     
     def generar_individuo(self):
         individuo = []
-        for _ in range(len(self.imagen)):
+        for _ in range(len(self.imageBin)):
             fila = []
-            for _ in range(len(self.imagen[0])):
+            for _ in range(len(self.imageBin[0])):
                 if random.random() < 0.5:
                     fila.append(1)  # Movimiento permitido
                 else:
@@ -31,8 +53,8 @@ class AlgoritmoGenetico:
             individuo.append(fila)
         return individuo
     
-    def evaluar_individuo(self, individuo):
-        x, y = self.punto_inicial
+    def fitness(self, individuo):
+        x, y = self.srcStart
         for i in range(len(individuo)):
             fila = individuo[i]
             for j in range(len(fila)):
@@ -44,26 +66,9 @@ class AlgoritmoGenetico:
                     break
             if not self.es_movimiento_valido(x, y):
                 break
-        return self.distancia_euclidiana((x, y), self.punto_final)
+        return self.distancia_euclidiana((x, y), self.srcFinish)
     
-    def distancia_euclidiana(self, punto1, punto2):
-        x1, y1 = punto1
-        x2, y2 = punto2
-        return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-    
-    def es_movimiento_valido(self, x, y):
-        filas, columnas = self.imagen.shape
-        return 0 <= x < filas and 0 <= y < columnas and self.imagen[x][y] == 1
-    
-    def obtener_direccion(self, movimiento):
-        if movimiento == 0:
-            return -1, 0  # Movimiento hacia arriba
-        elif movimiento == 1:
-            return 1, 0  # Movimiento hacia abajo
-        elif movimiento == 2:
-            return 0, -1  # Movimiento hacia la izquierda
-        else:
-            return 0, 1  # Movimiento hacia la derecha
+
     
     def seleccionar_padres(self, poblacion):
         padres = random.choices(poblacion, k=2, weights=[1 / (individuo['fitness'] + 1) for individuo in poblacion])
@@ -84,14 +89,14 @@ class AlgoritmoGenetico:
     def mutar_individuo(self, individuo):
         for i in range(len(individuo)):
             for j in range(len(individuo[0])):
-                if random.random() < self.probabilidad_mutacion:
+                if random.random() < self.pro_mutation:
                     individuo[i][j] = 1 - individuo[i][j]  # Cambiar el valor del bit (0 a 1 o 1 a 0)
         return individuo
     
     def ejecutar(self):
-        poblacion = self.inicializar_poblacion()
+        poblacion = self.initialize_population()
         
-        while self.generacion_actual < self.max_generaciones:
+        while self.generacion_actual < self.max_generations:
             nueva_poblacion = []
             
             for individuo in poblacion:
@@ -105,7 +110,7 @@ class AlgoritmoGenetico:
             
             poblacion = []
             
-            while len(poblacion) < self.tamano_poblacion:
+            while len(poblacion) < self.tam_population:
                 padre1, padre2 = self.seleccionar_padres(nueva_poblacion)
                 hijo = self.cruzar_padres(padre1['individuo'], padre2['individuo'])
                 hijo_mutado = self.mutar_individuo(hijo)

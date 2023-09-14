@@ -1,21 +1,21 @@
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
-from GA import AlgoritmoGenetico
+from GA import GA
 
 #variables 
 srcPoints = []
 srcStart = (0, 0)
 srcFinish = (50, 50)
-#--------
+#preprocess variables
 cutImage = None
 gray = None
 blur = None
 canny = None
 binary = None
-#---------
-weidth_cut = 50
-height_cut = 50
+#Image dimension crop
+weidth_cut = 70
+height_cut = 70
 
 #functions Process------------------------------------------------------------------------------
 def getPoints (event,x,y,flags, param):
@@ -23,9 +23,21 @@ def getPoints (event,x,y,flags, param):
     srcPoints.append((x,y))
     print("Punto agregado: ", x, y)
 
-def refPoints():                           #Corregir 
-  global cutImage, srcStart, srcFinish
+def centerCircle(contorno, etiqueta, color_etiqueta): #print point start and finish
+    M = cv.moments(contorno)
+    if M["m00"] != 0:
+        centro_x = int(M["m10"] / M["m00"])
+        centro_y = int(M["m01"] / M["m00"])
+        centro = (centro_x, centro_y)
+        cv.circle(cutImage, centro, 4, color_etiqueta, -1)  # Dibuja un círculo en el centro
+        cv.putText(cutImage, etiqueta, (centro[0] - 30, centro[1] - 10),
+                   cv.FONT_HERSHEY_SIMPLEX, 0.5, color_etiqueta, 2)  # Agrega la etiqueta
+        return centro
+    else:
+        return None
 
+def refPoints():       #detected start and finish                     
+  global cutImage, srcStart, srcFinish
   #saturar la img 
   hsv_frame = cv.cvtColor(cutImage, cv.COLOR_BGR2HSV)
 
@@ -40,26 +52,17 @@ def refPoints():                           #Corregir
   mask_red = cv.inRange(hsv_frame, lower_red, upper_red)
   mask_blue = cv.inRange(hsv_frame, lower_blue, upper_blue)
 
-  # Encuentra círculos en las máscaras de color rojo y azul
-  circles_red = cv.HoughCircles(mask_red, cv.HOUGH_GRADIENT, dp=1, minDist=20, param1=50, param2=30, minRadius=0, maxRadius=0)
-  circles_blue = cv.HoughCircles(mask_blue, cv.HOUGH_GRADIENT, dp=1, minDist=20, param1=50, param2=30, minRadius=0, maxRadius=0)
+  # mascara rojo y azul
+  redContour, _ = cv.findContours(mask_red, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+  blueContour, _ = cv.findContours(mask_blue, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
   
-  if circles_red is not None:
-    # Dibuja los círculos rojos encontrados
-    print("rojo")
-    circles_red = np.uint16(np.around(circles_red))
-    for circle in circles_red[0, :]:
-      srcStart = (circle[0], circle[1])
-      cv.circle(cutImage, srcStart, circle[2], (0, 0, 255), 2)
+  for contorno in redContour:
+    srcStart = centerCircle(contorno, "inicio", (0, 0, 255))
 
-  if circles_blue is not None:
-    # Dibuja los círculos azules encontrados
-    circles_blue = np.uint16(np.around(circles_blue))
-    for circle in circles_blue[0, :]:
-      srcFinish = (circle[0], circle[1])
-      cv.circle(cutImage, srcFinish, circle[2], (255, 0, 0), 2)
+  for contorno in blueContour:
+    srcFinish = centerCircle(contorno, "final", (255, 0, 0))
 
-def DrawContours():
+def DrawContours():  #delimits the objects it detects
     global cutImage,canny
   #Contours
     contours, _  = cv.findContours(canny,cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -109,11 +112,6 @@ def drawCircuit(blur):
   global srcStart, srcFinish
   blur = np.array(blur)
 
-  ga = AlgoritmoGenetico(blur, srcStart, srcFinish)
-  best_route = ga.ejecutar()
-  print("Mejor ruta encontrada:")
-  print(best_route)
-
   # Crear una figura y un conjunto de subtramas
   fig, ax = plt.subplots()
 
@@ -121,10 +119,7 @@ def drawCircuit(blur):
 
   plt.axis('off') 
   plt.title('Imagen Binarizada')
-  plt.show()
-
-#Genetic ----------------------------------------------------------------------------------------
-
+  # plt.show()
 
 #video capture
 cap = cv.VideoCapture(0)
@@ -146,12 +141,11 @@ while (cap.isOpened()):
     break
 
   if len(srcPoints) == 4: # hasta que no seleccione los 4 
-
     #Preproces
     Preprocess(frame)
 
     #contours
-    refPoints()
+    # refPoints()
     DrawContours()
     
     # router
@@ -160,9 +154,7 @@ while (cap.isOpened()):
     #Show
     contac = cv.hconcat([gray, blur, canny])
     cv.imshow('Cut', cutImage)
-    cv.imshow('Concat', contac)
-    cv.resizeWindow('Concat', 900,300)
-  
+    cv.imshow('Concat', contac)  
   else:
     for corner in srcPoints: #mostrar los puntos
       cv.circle(frame, corner, 2, (0,0,255),-1)
