@@ -125,10 +125,10 @@ class AlgoritmoGenetico:
             best_fitness = min(fitness_population)                #mejor fitness
 
             # Mostrar información de la generación actual
-            print("Generación:", current_generation + 1)
-            print("Mejor trayectoria:", best_guy)
-            print("Fitness:", best_fitness)
-            print("------------------------------------")
+            # print("Generación:", current_generation + 1)
+            # print("Mejor trayectoria:", best_guy)
+            # print("Fitness:", best_fitness)
+            # print("------------------------------------")
             
              # Almacenar las últimas 5 trayectorias
             if len(self.last_trajectories) < 5:

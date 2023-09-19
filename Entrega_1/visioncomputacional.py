@@ -130,25 +130,33 @@ def drawCircuit(matriz):
     matriz = np.array(matriz)
     ag = AlgoritmoGenetico(matriz, srcStart , srcFinish)
 
-    ag.AG()
+    trajectory = ag.AG()
 
-    filas, columnas = matriz.shape
+    rows, columns = matriz.shape
     
     # Crear una figura y un eje
     fig, ax = plt.subplots()
     
     # Iterar a través de la matriz y dibujar los rectángulos
-    for fila in range(filas):
-        for columna in range(columnas):
-            if matriz[fila][columna] == 1:
-                ax.add_patch(plt.Rectangle((columna, fila), 1, 1, color='black'))
+    for row in range(rows):
+        for column in range(columns):
+            if matriz[row][column] == 1:
+                ax.add_patch(plt.Rectangle((column, row), 1, 1, color='black'))
             else:
-                ax.add_patch(plt.Rectangle((columna, fila), 1, 1, edgecolor='gray', facecolor='none'))
+                ax.add_patch(plt.Rectangle((column,row), 1, 1, edgecolor='gray', facecolor='none'))
+    
+    # Dibujar las trayectorias
+    colors = ['red', 'blue', 'green', 'orange', 'purple']  # Colores para las trayectorias
+    for i, trajectory in enumerate(ag.last_trajectories):
+        color = colors[i % len(colors)]
+        for j in range(len(trajectory) - 1):
+            x1, y1 = trajectory[j]
+            x2, y2 = trajectory[j + 1]
+            ax.plot([y1 + 0.5, y2 + 0.5], [x1 + 0.5, x2 + 0.5], color=color, linewidth=2)
     
     # Configurar límites y mostrar el gráfico
-    
-    ax.set_xlim(0, columnas)
-    ax.set_ylim(0, filas)
+    ax.set_xlim(0, columns)
+    ax.set_ylim(0, rows)
     ax.set_aspect('equal')  # Para que los cuadrados tengan el mismo tamaño en x y y
     plt.gca().invert_yaxis()  # Invertir el eje y para que la parte superior sea el principio
     plt.axis('off')  # Ocultar ejes
