@@ -2,79 +2,83 @@ import numpy as np
 import random
 
 class AlgoritmoGenetico:
-    def __init__(self, imageBin, srcStart, srcFinish,num_restrictions, tam_population = 50, pro_mutation = 0.001, max_generations = 100):
-        self.imageBin = imageBin
+    def __init__(self, matrizImg, srcStart, srcFinish, tam_population = 20, num_parents = 50, pro_mutation = 0.001, max_generations = 100):
+        self.matrizImg = matrizImg
         self.srcStart = srcStart
         self.srcFinish = srcFinish
-        self.num_restrictions = num_restrictions
         self.tam_population = tam_population
+        self.num_parents = num_parents
         self.pro_mutation = pro_mutation
         self.max_generations = max_generations
-        self.max_size = 2
-        self.min_size = 1
     
-    def restriction(self):
-        cell_size = self.max_size + 1  # Tamaño de la celda basado en el tamaño máximo de restricción
-        cells_x = (self.imageBin.shape[0] - 1) // cell_size + 1
-        cells_y = (self.imageBin.shape[1] - 1) // cell_size + 1
-
-        for _ in range(self.num_restrictions):
-            size = random.randint(self.min_size, self.max_size)
-            cell_x = random.randint(0, cells_x - 1)
-            cell_y = random.randint(0, cells_y - 1)
-
-            x = cell_x * cell_size
-            y = cell_y * cell_size
-
-            if (
-                (x + size <= self.srcStart[0] or x >= self.srcStart[0] + 1 or y + size <= self.srcStart[1] or y >= self.srcStart[1] + 1)
-                and (x + size <= self.srcFinish[0] or x >= self.srcFinish[0] + 1 or y + size <= self.srcFinish[1] or y >= self.srcFinish[1] + 1)
-            ):
-                self.imageBin[x:x+size, y:y+size] = 1
-
-        return self.imageBin
-    
+    #Inciar la poblacion 
     def initialize_population(self):
-        poblacion = []
+        population = []
         for _ in range(self.tam_population):
-            individuo = self.generar_individuo()
-            poblacion.append(individuo)
-        return poblacion
-    
-    def generar_individuo(self):
-        individuo = []
-        for _ in range(len(self.imageBin)):
-            fila = []
-            for _ in range(len(self.imageBin[0])):
-                if random.random() < 0.5:
-                    fila.append(1)  # Movimiento permitido
-                else:
-                    fila.append(0)  # Movimiento bloqueado
-            individuo.append(fila)
-        return individuo
-    
-    def fitness(self, individuo):
-        x, y = self.srcStart
-        for i in range(len(individuo)):
-            fila = individuo[i]
-            for j in range(len(fila)):
-                movimiento = fila[j]
-                dx, dy = self.obtener_direccion(movimiento)
-                x += dx
-                y += dy
-                if not self.es_movimiento_valido(x, y):
-                    break
-            if not self.es_movimiento_valido(x, y):
-                break
-        return self.distancia_euclidiana((x, y), self.srcFinish)
-    
+            trajectory = [self.srcStart]
+            x, y = self.srcStart
+            routeVisited = set([self.srcStart]) #coordenadas visitadas
+            
+            while (x, y) != self.srcFinish:
+                options = []
 
+                # Movimiento hacia la derecha
+                if x < self.srcFinish[0] and self.matrizImg[x + 1][y] != 1 and (x + 1, y) not in routeVisited:
+                    options.append((x + 1, y))
+                
+                # Movimiento hacia arriba
+                if y < self.srcFinish[1] and self.matrizImg[x][y + 1] != 1 and (x, y + 1) not in routeVisited:
+                    options.append((x, y + 1))
+                
+                # Movimiento hacia la izquierda
+                if x > self.srcFinish[0] and self.matrizImg[x - 1][y] != 1 and (x - 1, y) not in routeVisited:
+                    options.append((x - 1, y))
+            
+                # Movimiento hacia abajo
+                if y > self.srcFinish[1] and self.matrizImg[x][y - 1] != 1 and (x, y - 1) not in routeVisited:
+                    options.append((x, y - 1))
+
+                if options:
+                    x, y = random.choice(options)
+                    trajectory.append((x, y))
+                    routeVisited.add((x, y))
+                
+                else:
+                    if len(trajectory) == 1:
+                        break
+                    trajectory.pop()
+                    x, y = trajectory[-1]
+            
+            population.append(trajectory)
+
+        return population
     
-    def seleccionar_padres(self, poblacion):
-        padres = random.choices(poblacion, k=2, weights=[1 / (individuo['fitness'] + 1) for individuo in poblacion])
-        return padres
+    #funcion de fitness
+    def fitness(self, individuo):
+        longitud = 0
+        for i in range(len(individuo) - 1):
+            x1, y1 = individuo[i]
+            x2, y2 = individuo[i + 1]
+        
+            distancia_x = abs(x1 - x2)
+            distancia_y = abs(y1 - y2)
+        
+            longitud += distancia_x + distancia_y
+        return longitud
     
-    def cruzar_padres(self, padre1, padre2):
+    #seleccionar los padres
+    def select_parents(self, population):
+        parents = []
+        for _ in range(self.num_parents):
+            participants = random.sample(population, 2)
+            fitness_competitors = [self.fitness(guy) for guy in participants]
+            best_guy = participants[np.argmin(fitness_competitors)]
+            parents.append(best_guy)
+
+        return parents
+    
+    #funcion que permite cruzar en un punto para dos individuos 
+    def cross(self, padre1, padre2):
         hijo = []
         for i in range(len(padre1)):
             fila_hijo = []
