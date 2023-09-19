@@ -90,31 +90,32 @@ def DrawContours(matriz):  # delimits the objects it detects
 def Preprocess(frame):
     global srcPoints, cutImage, gray, blur, height_cut, weidth_cut, canny, binary
     # Points
-    srcPoints = np.array(srcPoints)
+    srcPoints = np.float32(srcPoints)
     dstPoints = np.array([[0, 0], [weidth_cut, 0], [weidth_cut, height_cut], [0, height_cut]],dtype=np.float32,)  # img definir tamaño
 
     # perspective transform
-    homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
-    m = cv.getPerspectiveTransform(np.float32(srcPoints), dstPoints)
-    img_undistorted = cv.undistort(
-        frame, np.eye(3), np.zeros(5)
-    )  # Corregir distorsión no lineal
-    cutImage = cv.warpPerspective(img_undistorted, m, (height_cut, weidth_cut))
+    #homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
+    homography = cv.getPerspectiveTransform(srcPoints, dstPoints)
 
-    #detectar el color del obstaculo. Crear una variable en la cual se almacene esa informacion 
-    #no binarizar la imagen, extraer los 3 canales del color.
+    img_undistorted = cv.undistort(frame, np.eye(3), np.zeros(5))
+
+    # Corregir distorsión no lineal
+    cutImage = cv.warpPerspective(img_undistorted, homography, (weidth_cut,height_cut))
 
     # grayscale
     gray = cv.cvtColor(cutImage, cv.COLOR_BGR2GRAY)
 
     # threshold and binary
     _, binary = cv.threshold(gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    obstacle_mask = cv.bitwise_not(binary)
 
     # Gaussian blur
     blur = cv.GaussianBlur(binary, (7, 7), 1)
 
     # Canny detection
     canny = cv.Canny(blur, 100, 150)
+
+    return obstacle_mask
 
 def empty(a):
     pass
@@ -178,14 +179,14 @@ while cap.isOpened():
 
     if len(srcPoints) == 4:  # hasta que no seleccione los 4
         # Preproces
-        Preprocess(frame)
+        obstacle = Preprocess(frame)
 
         # contours
         refPoints()
         #DrawContours(canny)
 
         # router
-        drawCircuit(blur)
+        drawCircuit(obstacle)
 
         # Show
         cutImage = cv.resize(cutImage, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
