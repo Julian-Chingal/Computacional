@@ -22,28 +22,22 @@ class AlgoritmoGenetico:
             
             while (x, y) != self.srcFinish:
                 options = []
-
                 # Movimiento hacia la derecha
-                if x < self.srcFinish[0] and self.matrizImg[x + 1][y] != 1 and (x + 1, y) not in routesVisited:
+                if x < self.srcFinish[0] and (x + 1, y) not in routesVisited and self.matrizImg[x + 1, y] != 1:
                     options.append((x + 1, y))
-                
                 # Movimiento hacia arriba
-                if y < self.srcFinish[1] and self.matrizImg[x][y + 1] != 1 and (x, y + 1) not in routesVisited:
+                if y < self.srcFinish[1] and (x, y + 1) not in routesVisited and self.matrizImg[x, y + 1] != 1:
                     options.append((x, y + 1))
-                
                 # Movimiento hacia la izquierda
-                if x > self.srcFinish[0] and self.matrizImg[x - 1][y] != 1 and (x - 1, y) not in routesVisited:
+                if x > self.srcFinish[0] and (x - 1, y) not in routesVisited and self.matrizImg[x - 1, y] != 1:
                     options.append((x - 1, y))
-            
                 # Movimiento hacia abajo
-                if y > self.srcFinish[1] and self.matrizImg[x][y - 1] != 1 and (x, y - 1) not in routesVisited:
+                if y > self.srcFinish[1] and (x, y - 1) not in routesVisited and self.matrizImg[x, y - 1] != 1:
                     options.append((x, y - 1))
-
                 if options:
                     x, y = random.choice(options)
                     trajectory.append((x, y))
                     routesVisited.add((x, y))
-                
                 else:
                     if len(trajectory) == 1:
                         break

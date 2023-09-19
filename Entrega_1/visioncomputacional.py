@@ -14,7 +14,7 @@ blur = None
 canny = None
 binary = None
 # Image dimension crop
-weidth_cut = 60
+weidth_cut = 70
 height_cut = 70
 
 # functions Process------------------------------------------------------------------------------
@@ -48,12 +48,12 @@ def refPoints():  # detected start and finish
     lower_red = np.array([0, 100, 100])
     upper_red = np.array([10, 255, 255])
 
-    lower_green = np.array([40, 100, 100])  
-    upper_green = np.array([80, 255, 255])  
+    lower_blue = np.array([100, 100, 100])
+    upper_blue = np.array([130, 255, 255]) 
 
     # Filtra los píxeles de color rojo y azul
     mask_red = cv.inRange(hsv_frame, lower_red, upper_red)
-    mask_green = cv.inRange(hsv_frame, lower_green, upper_green)
+    mask_blue = cv.inRange(hsv_frame, lower_blue, upper_blue)
 
     # Comprobar si hay algún píxel rojo
     start_center = center(mask_red)
@@ -64,7 +64,7 @@ def refPoints():  # detected start and finish
         srcStart = (0, 0)
 
     # Comprobar si hay algún píxel azul
-    finish_center = center(mask_green)
+    finish_center = center(mask_blue)
     if finish_center:
         srcFinish = finish_center
         print("Final: ", finish_center)
@@ -89,33 +89,68 @@ def DrawContours(matriz):  # delimits the objects it detects
 
 def Preprocess(frame):
     global srcPoints, cutImage, gray, blur, height_cut, weidth_cut, canny, binary
+    #limites para caluclar el color del objeto
+    limRedMax = 30
+    limBlueMax = 30
+    limGreenMax = 30
+
     # Points
     srcPoints = np.float32(srcPoints)
     dstPoints = np.array([[0, 0], [weidth_cut, 0], [weidth_cut, height_cut], [0, height_cut]],dtype=np.float32,)  # img definir tamaño
 
     # perspective transform
-    #homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
     homography = cv.getPerspectiveTransform(srcPoints, dstPoints)
-
     img_undistorted = cv.undistort(frame, np.eye(3), np.zeros(5))
 
     # Corregir distorsión no lineal
-    cutImage = cv.warpPerspective(img_undistorted, homography, (weidth_cut,height_cut))
+    cutImage= cv.warpPerspective(img_undistorted, homography, (weidth_cut,height_cut))
 
-    # grayscale
-    gray = cv.cvtColor(cutImage, cv.COLOR_BGR2GRAY)
+    #separacion matriz de colores, 
+    B=cutImage[:,:,0]
+    G=cutImage[:,:,1]
+    R=cutImage[:,:,2]
+
+    #detectar pixel por pixel si encuentra el color en este caso limite para detectar color negro
+    frameCircuit = []
+    auxX = 0
+    for i in cutImage:
+        auxY = 0
+        nrow = []
+        for j in i:
+            if (B[auxX][auxY] < limBlueMax) and (G[auxX][auxY] < limGreenMax) and (R[auxX][auxY] < limRedMax):
+              nrow.append(1)
+            else:
+              nrow.append(0)
+            auxY += 1
+        frameCircuit.append(nrow)
+        auxX +=1
+
+    # Crear la matriz binaria en función de la máscara
+    checkup = [] #guarda la matriz con los colores verificados
+    for i in range(len(frameCircuit)):
+        auxrow = [] #guarda temporalemente la informacion de cada fila
+        for j in range(len(frameCircuit[0])):
+            if frameCircuit[i][j] == 0:
+              auxrow.append(255)
+            else:
+                auxrow.append(0)
+        checkup.append(auxrow)
+
+    MatrizResult = np.array(checkup)
+
+    xr, yr = MatrizResult.shape
+
+    newMatriz = np.zeros((xr,yr), dtype=np.uint8)
+    newMatriz[:]= MatrizResult
 
     # threshold and binary
-    _, binary = cv.threshold(gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
-    obstacle_mask = cv.bitwise_not(binary)
+    _, binary = cv.threshold(newMatriz, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
     # Gaussian blur
     blur = cv.GaussianBlur(binary, (7, 7), 1)
 
     # Canny detection
-    canny = cv.Canny(blur, 100, 150)
-
-    return obstacle_mask
+    canny = cv.Canny(newMatriz, 100, 150)
 
 def empty(a):
     pass
@@ -136,11 +171,11 @@ def drawCircuit(matriz):
     # Iterar a través de la matriz y dibujar los rectángulos
     for row in range(rows):
         for column in range(columns):
-            if matriz[row][column] == 1:
-                ax.add_patch(plt.Rectangle((column, row), 1, 1, color='black'))
-            else:
-                ax.add_patch(plt.Rectangle((column,row), 1, 1, edgecolor='gray', facecolor='none'))
-    
+          if matriz[row][column] == 1:
+            ax.add_patch(plt.Rectangle((column, row), 1, 1, color='black'))
+          else:
+            ax.add_patch(plt.Rectangle((column,row), 1, 1, edgecolor='gray', facecolor='none'))
+
     # Dibujar las trayectorias
     colors = ['red', 'blue', 'green', 'orange', 'purple']  # Colores para las trayectorias
     for i, trajectory in enumerate(ag.last_trajectories):
@@ -183,14 +218,15 @@ while cap.isOpened():
 
         # contours
         refPoints()
-        #DrawContours(canny)
+        DrawContours(canny)
 
         # router
-        drawCircuit(obstacle)
+        #drawCircuit(obstacle)
 
         # Show
         cutImage = cv.resize(cutImage, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
         cv.imshow("Cut", cutImage)
+        cv.imshow("blur", blur)
     else:
         for corner in srcPoints:  # mostrar los puntos
             cv.circle(frame, corner, 2, (0, 0, 255), -1)
