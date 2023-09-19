@@ -136,21 +136,16 @@ def Preprocess(frame):
                 auxrow.append(0)
         checkup.append(auxrow)
 
-    MatrizResult = np.array(checkup)
-
-    xr, yr = MatrizResult.shape
-
-    newMatriz = np.zeros((xr,yr), dtype=np.uint8)
-    newMatriz[:]= MatrizResult
+    MatrizResult = np.array((checkup), dtype= np.uint8)
 
     # threshold and binary
-    _, binary = cv.threshold(newMatriz, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    _, binary = cv.threshold(MatrizResult, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
     # Gaussian blur
     blur = cv.GaussianBlur(binary, (7, 7), 1)
 
     # Canny detection
-    canny = cv.Canny(newMatriz, 100, 150)
+    canny = cv.Canny(blur, 100, 150)
 
 def empty(a):
     pass
@@ -214,14 +209,14 @@ while cap.isOpened():
 
     if len(srcPoints) == 4:  # hasta que no seleccione los 4
         # Preproces
-        obstacle = Preprocess(frame)
+        Preprocess(frame)
 
         # contours
         refPoints()
         DrawContours(canny)
 
         # router
-        #drawCircuit(obstacle)
+        drawCircuit(blur)
 
         # Show
         cutImage = cv.resize(cutImage, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
