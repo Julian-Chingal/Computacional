@@ -2,14 +2,15 @@ import numpy as np
 import random
 
 class AlgoritmoGenetico:
-    def __init__(self, matrizImg, srcStart, srcFinish, tam_population = 20, num_parents = 50, pro_mutation = 0.001, max_generations = 100):
+    def __init__(self, matrizImg, srcStart, srcFinish, tam_population = 20, num_parents = 50, mutation_pro = 0.001, max_generations = 100):
         self.matrizImg = matrizImg
         self.srcStart = srcStart
         self.srcFinish = srcFinish
         self.tam_population = tam_population
         self.num_parents = num_parents
-        self.pro_mutation = pro_mutation
+        self.mutation_pro = mutation_pro
         self.max_generations = max_generations
+        self.last_trajectories = []
     
     #Inciar la poblacion 
     def initialize_population(self):
@@ -17,31 +18,31 @@ class AlgoritmoGenetico:
         for _ in range(self.tam_population):
             trajectory = [self.srcStart]
             x, y = self.srcStart
-            routeVisited = set([self.srcStart]) #coordenadas visitadas
+            routesVisited = set([self.srcStart]) #coordenadas visitadas
             
             while (x, y) != self.srcFinish:
                 options = []
 
                 # Movimiento hacia la derecha
-                if x < self.srcFinish[0] and self.matrizImg[x + 1][y] != 1 and (x + 1, y) not in routeVisited:
+                if x < self.srcFinish[0] and self.matrizImg[x + 1][y] != 1 and (x + 1, y) not in routesVisited:
                     options.append((x + 1, y))
                 
                 # Movimiento hacia arriba
-                if y < self.srcFinish[1] and self.matrizImg[x][y + 1] != 1 and (x, y + 1) not in routeVisited:
+                if y < self.srcFinish[1] and self.matrizImg[x][y + 1] != 1 and (x, y + 1) not in routesVisited:
                     options.append((x, y + 1))
                 
                 # Movimiento hacia la izquierda
-                if x > self.srcFinish[0] and self.matrizImg[x - 1][y] != 1 and (x - 1, y) not in routeVisited:
+                if x > self.srcFinish[0] and self.matrizImg[x - 1][y] != 1 and (x - 1, y) not in routesVisited:
                     options.append((x - 1, y))
             
                 # Movimiento hacia abajo
-                if y > self.srcFinish[1] and self.matrizImg[x][y - 1] != 1 and (x, y - 1) not in routeVisited:
+                if y > self.srcFinish[1] and self.matrizImg[x][y - 1] != 1 and (x, y - 1) not in routesVisited:
                     options.append((x, y - 1))
 
                 if options:
                     x, y = random.choice(options)
                     trajectory.append((x, y))
-                    routeVisited.add((x, y))
+                    routesVisited.add((x, y))
                 
                 else:
                     if len(trajectory) == 1:
@@ -78,48 +79,79 @@ class AlgoritmoGenetico:
         return parents
     
     #funcion que permite cruzar en un punto para dos individuos 
-    def cross(self, padre1, padre2):
-        hijo = []
-        for i in range(len(padre1)):
-            fila_hijo = []
-            for j in range(len(padre1[0])):
-                if random.random() < 0.5:
-                    fila_hijo.append(padre1[i][j])
-                else:
-                    fila_hijo.append(padre2[i][j])
-            hijo.append(fila_hijo)
-        return hijo
+    def cross(self, father1, father2):
+        if len(father1) <= 2 or len(father2) <= 2:
+            if random.random() < 0.5:
+                son = father1[:]
+            else:
+                son = father2[:]
+        else:
+            crossing_point1 = random.randint(1, len(father1) - 2)   #puntos de cruce 
+            crossing_point2 = random.randint(crossing_point1  + 1, len(father2) - 1)
+
+            son = father1[:crossing_point1 ] + father2[crossing_point1 :crossing_point2] + father1[crossing_point2:]
+   
+        return son
     
-    def mutar_individuo(self, individuo):
-        for i in range(len(individuo)):
-            for j in range(len(individuo[0])):
-                if random.random() < self.pro_mutation:
-                    individuo[i][j] = 1 - individuo[i][j]  # Cambiar el valor del bit (0 a 1 o 1 a 0)
+    #funcion de mutacion 
+    def mutate(self, individuo):
+        for i in range(1, len(individuo) - 1):
+            if random.random() < self.mutation_pro:
+                x, y = individuo[i]
+                options = []
+                
+                #posibles movimientos
+                movements = [(0,1),(0,-1),(1,0),(-1,0)]
+
+                for dx, dy in movements:
+                    new_x, new_y = x + dx, y + dy
+                    if(0<= new_x < len(self.matrizImg) and 0 <= new_y < len(self.matrizImg[0]) and self.matrizImg[new_x, new_y]):
+                        options.append((new_x, new_y))
+                
+                if options:
+                    individuo[i] = random.choice(options)
+
         return individuo
     
-    def ejecutar(self):
-        poblacion = self.initialize_population()
+    def AG(self):
+        #inciar la poblacion
+        population = self.initialize_population()
+        current_generation = 0
+        while current_generation < self.max_generations:
+            fitness_population = [self.fitness(guy) for guy in population]
+            
+            # mejor trayectoria de la generación actual
+            best_guy = population[np.argmin(fitness_population)]  #mejor individuo
+            best_fitness = min(fitness_population)                #mejor fitness
+
+            # Mostrar información de la generación actual
+            print("Generación:", current_generation + 1)
+            print("Mejor trayectoria:", best_guy)
+            print("Fitness:", best_fitness)
+            print("------------------------------------")
+            
+             # Almacenar las últimas 5 trayectorias
+            if len(self.last_trajectories) < 5:
+                self.last_trajectories.append(best_guy[:])
+            else:
+                self.last_trajectories.pop(0)
+                self.last_trajectories.append(best_guy[:])
+
+            #seleccionar los padres
+            parents = self.select_parents(population)
+            
+            # Creación de la nueva generación
+            new_generation = []
+
+            while len(new_generation) < self.tam_population:
+                father1, father2 = random.sample(parents, 2)
+                son = self.cross(father1, father2)
+                mutate_son = self.mutate(son)
+                new_generation.append(mutate_son)
+            
+            # Reemplazo de la población anterior por la nueva generación
+            population = new_generation
+
+            current_generation += 1
         
-        while self.generacion_actual < self.max_generations:
-            nueva_poblacion = []
-            
-            for individuo in poblacion:
-                fitness = self.evaluar_individuo(individuo)
-                individuo_actualizado = {'individuo': individuo, 'fitness': fitness}
-                
-                if self.mejor_individuo is None or fitness < self.mejor_individuo['fitness']:
-                    self.mejor_individuo = individuo_actualizado
-                
-                nueva_poblacion.append(individuo_actualizado)
-            
-            poblacion = []
-            
-            while len(poblacion) < self.tam_population:
-                padre1, padre2 = self.seleccionar_padres(nueva_poblacion)
-                hijo = self.cruzar_padres(padre1['individuo'], padre2['individuo'])
-                hijo_mutado = self.mutar_individuo(hijo)
-                poblacion.append({'individuo': hijo_mutado, 'fitness': None})
-            
-            self.generacion_actual += 1
-        
-        return self.mejor_individuo['individuo']
+        return best_guy

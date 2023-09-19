@@ -1,12 +1,12 @@
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
-# from GA import GA
+from GA import AlgoritmoGenetico
 
 # variables
 srcPoints = []
 srcStart = (0, 0)
-srcFinish = (50, 50)
+srcFinish = (40, 40)
 # preprocess variables
 cutImage = None
 gray = None
@@ -16,7 +16,6 @@ binary = None
 # Image dimension crop
 weidth_cut = 50
 height_cut = 50
-# ga = GA
 
 # functions Process------------------------------------------------------------------------------
 def getPoints(event, x, y, flags, param):
@@ -126,9 +125,12 @@ def empty(a):
     pass
 
 # PLT ----------------------------------------------------------------------------------------
-def drawCircuit(blur):
+def drawCircuit(matriz):
     global srcStart, srcFinish
-    matriz = np.array(blur)
+    matriz = np.array(matriz)
+    ag = AlgoritmoGenetico(matriz, srcStart , srcFinish)
+
+    ag.AG()
 
     filas, columnas = matriz.shape
     
@@ -144,6 +146,7 @@ def drawCircuit(blur):
                 ax.add_patch(plt.Rectangle((columna, fila), 1, 1, edgecolor='gray', facecolor='none'))
     
     # Configurar límites y mostrar el gráfico
+    
     ax.set_xlim(0, columnas)
     ax.set_ylim(0, filas)
     ax.set_aspect('equal')  # Para que los cuadrados tengan el mismo tamaño en x y y
