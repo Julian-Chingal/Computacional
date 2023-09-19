@@ -220,6 +220,7 @@ while cap.isOpened():
 
         # Show
         cutImage = cv.resize(cutImage, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
+        blur = cv.resize(blur, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
         cv.imshow("Cut", cutImage)
         cv.imshow("blur", blur)
     else:
