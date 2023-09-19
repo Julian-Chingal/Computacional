@@ -14,8 +14,8 @@ blur = None
 canny = None
 binary = None
 # Image dimension crop
-weidth_cut = 50
-height_cut = 50
+weidth_cut = 60
+height_cut = 70
 
 # functions Process------------------------------------------------------------------------------
 def getPoints(event, x, y, flags, param):
@@ -23,27 +23,21 @@ def getPoints(event, x, y, flags, param):
         srcPoints.append((x, y))
         print("Punto agregado: ", x, y)
 
-def centerCircle(contorno, etiqueta, color_etiqueta):  # print point start and finish
-    M = cv.moments(contorno)
-    if M["m00"] != 0:
-        centro_x = int(M["m10"] / M["m00"])
-        centro_y = int(M["m01"] / M["m00"])
-        centro = (centro_x, centro_y)
-        cv.circle(
-            cutImage, centro, 4, color_etiqueta, -1
-        )  # Dibuja un círculo en el centro
-        cv.putText(
-            cutImage,
-            etiqueta,
-            (centro[0] - 30, centro[1] - 10),
-            cv.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            color_etiqueta,
-            2,
-        )  # Agrega la etiqueta
-        return centro
-    else:
-        return None
+def center(mask):  # print point start and finish
+    global cutImage
+    contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+    if len(contours) > 0:  
+      largest_contour = max(contours, key=cv.contourArea)
+      # Calcula el centroide del contorno
+      M = cv.moments(largest_contour)
+
+      if M['m00'] != 0:
+            cx = int(M['m10'] / M['m00'])
+            cy = int(M['m01'] / M['m00'])
+            return (cx, cy)
+    
+    return None
 
 def refPoints():  # detected start and finish
     global cutImage, srcStart, srcFinish
@@ -54,29 +48,33 @@ def refPoints():  # detected start and finish
     lower_red = np.array([0, 100, 100])
     upper_red = np.array([10, 255, 255])
 
-    lower_blue = np.array([100, 100, 100])
-    upper_blue = np.array([130, 255, 255])
+    lower_green = np.array([40, 100, 100])  
+    upper_green = np.array([80, 255, 255])  
 
     # Filtra los píxeles de color rojo y azul
     mask_red = cv.inRange(hsv_frame, lower_red, upper_red)
-    mask_blue = cv.inRange(hsv_frame, lower_blue, upper_blue)
+    mask_green = cv.inRange(hsv_frame, lower_green, upper_green)
 
-    # mascara rojo y azul
-    redContour, _ = cv.findContours(mask_red, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    blueContour, _ = cv.findContours(
-        mask_blue, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE
-    )
+    # Comprobar si hay algún píxel rojo
+    start_center = center(mask_red)
+    if start_center:
+        srcStart = start_center
+        print("Inicio: ", start_center)
+    else:
+        srcStart = (0, 0)
 
-    for contorno in redContour:
-        srcStart = centerCircle(contorno, "inicio", (0, 0, 255))
+    # Comprobar si hay algún píxel azul
+    finish_center = center(mask_green)
+    if finish_center:
+        srcFinish = finish_center
+        print("Final: ", finish_center)
+    else:
+        srcFinish = (40, 40)
 
-    for contorno in blueContour:
-        srcFinish = centerCircle(contorno, "final", (255, 0, 0))
-
-def DrawContours():  # delimits the objects it detects
-    global cutImage, canny
+def DrawContours(matriz):  # delimits the objects it detects
+    global cutImage
     # Contours
-    contours, _ = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv.findContours(matriz, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
     for contorno in contours:
         area = cv.contourArea(contorno)
@@ -91,20 +89,17 @@ def DrawContours():  # delimits the objects it detects
 
 def Preprocess(frame):
     global srcPoints, cutImage, gray, blur, height_cut, weidth_cut, canny, binary
-
     # Points
     srcPoints = np.array(srcPoints)
-    dstPoints = np.array(
-        [[0, 0], [weidth_cut, 0], [weidth_cut, height_cut], [0, height_cut]],
-        dtype=np.float32,
-    )  # img definir tamaño
+    dstPoints = np.array([[0, 0], [weidth_cut, 0], [weidth_cut, height_cut], [0, height_cut]],dtype=np.float32,)  # img definir tamaño
 
     # perspective transform
     homography, _ = cv.findHomography(np.float32(srcPoints), dstPoints)
+    m = cv.getPerspectiveTransform(np.float32(srcPoints), dstPoints)
     img_undistorted = cv.undistort(
         frame, np.eye(3), np.zeros(5)
     )  # Corregir distorsión no lineal
-    cutImage = cv.warpPerspective(img_undistorted, homography, (height_cut, weidth_cut))
+    cutImage = cv.warpPerspective(img_undistorted, m, (height_cut, weidth_cut))
 
     #detectar el color del obstaculo. Crear una variable en la cual se almacene esa informacion 
     #no binarizar la imagen, extraer los 3 canales del color.
@@ -163,7 +158,7 @@ def drawCircuit(matriz):
     plt.show()
 
 # video capture
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(1)
 
 # Events -----------------------------------------------------------------------------------------
 cv.namedWindow("Original")
@@ -186,17 +181,15 @@ while cap.isOpened():
         Preprocess(frame)
 
         # contours
-        # refPoints()
-        DrawContours()
+        refPoints()
+        #DrawContours(canny)
 
         # router
         drawCircuit(blur)
 
         # Show
-        cutImage = cv.resize(cutImage, None, fx=10, fy=10, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
-        contac = cv.hconcat([gray, blur, canny])
+        cutImage = cv.resize(cutImage, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
         cv.imshow("Cut", cutImage)
-        cv.imshow("Concat", contac)
     else:
         for corner in srcPoints:  # mostrar los puntos
             cv.circle(frame, corner, 2, (0, 0, 255), -1)
