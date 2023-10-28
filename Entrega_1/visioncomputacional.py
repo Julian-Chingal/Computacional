@@ -189,7 +189,7 @@ def drawCircuit(matriz):
     plt.show()
 
 # video capture
-cap = cv.VideoCapture(1)
+cap = cv.VideoCapture(0)
 
 # Events -----------------------------------------------------------------------------------------
 cv.namedWindow("Original")
