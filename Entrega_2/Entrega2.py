@@ -3,9 +3,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+from mpl_toolkits import mplot3d
 import seaborn as sns
 from sklearn.model_selection import train_test_split, KFold, cross_val_score
-from sklearn.metrics import accuracy_score, confusion_matrix as cm
+from sklearn.metrics import accuracy_score, confusion_matrix as cm 
 from sklearn.preprocessing import LabelEncoder, StandardScaler 
 from imblearn.under_sampling import RandomUnderSampler
 #models
@@ -54,7 +55,7 @@ print(data.dtypes)
 x_under, y_under = underSample.fit_resample(data[features], data[target])
 
 # Training ------------------------------------------------------------------------------
-x_train, x_test, y_train, y_test = train_test_split(data[features], data[target], test_size= 0.3, random_state=0)
+x_train, x_test, y_train, y_test = train_test_split(x_under, y_under, test_size= 0.3, random_state=0)
 
 # escalar la data 
 x_train = pd.DataFrame(scaler.fit_transform(x_train), columns= x_train.columns)
@@ -95,12 +96,13 @@ n_knn = scores.argmax()
 models = [
     ("Desicion Tree", DecisionTreeClassifier(criterion='entropy')), # arbol de decision  
     ("Random Forest", RandomForestClassifier(n_estimators=100)), # con 100 árboles class_weight= "balanced"
+    ("Red Neuronal:", MLPClassifier(hidden_layer_sizes=(100, 50), max_iter=1000)),
     ("KNN" , KNeighborsClassifier(n_neighbors= n_knn)),
     ("svc-linear", SVC(kernel="linear")), # Separacion Lineal
     ("svc-radial", SVC(kernel="rbf")),
     ("svc-polinomial", SVC(kernel="poly"))
 ]
-
+prec = []
 #models -------------------------------------------------------------------------------------------
 for name, model in models:
     # Imprimir los resultados de la validación cruzada
@@ -117,6 +119,7 @@ for name, model in models:
     predict = model.predict(x_test)
     accuracy = accuracy_score(y_test, predict)
     print(f'{name} Precisión en el conjunto de prueba: {accuracy * 100:.2f}%\n')
+    prec.append([name, accuracy])
 
     # Calcular la matriz de confusión
     c_matriz = cm(y_test, predict)
@@ -149,7 +152,7 @@ for name, model in models:
             print(f"Característica: {feature}, Importancia: {importance*100:.2f}%")
 
     # Graph SVC
-    if "svc-" in name:  # Grafico division lineal
+    if "svc-" in name:  
 
         # Ajustar el modelo SVM para obtener los coeficientes e intercepto
         modelo_svm = model
@@ -177,7 +180,21 @@ for name, model in models:
             
         # Graficamos el hiperplano y el margen
         ax.contourf(XX, YY, Z, alpha=0.8)
+        plt.title(f'svc- {name} 2D')
+        plt.xlabel(f'Característica {top_features[0]}')
+        plt.ylabel(f'Característica {top_features[1]}')
+        plt.show()
 
+        # Aplicamos una operación de kernel gaussiano para separar las clases
+        # Gamma controla el efecto del kernel, si es muy pequeño el modelo se parece al lineal
+        gamma = 1
+        Xr = np.exp(-gamma*(x_train ** 2).sum(1))
+        ax = plt.subplot(projection='3d')
+        cmap   = matplotlib.colors.ListedColormap( [ 'k', 'g' ] )   
+        ax.scatter3D(x_train.iloc[:, 0], x_train.iloc[:, 1], Xr, c=y_train, s=50, cmap=cmap)
+        ax.set_title(f'svc - {name} 3D')
+        ax.set_xlabel(f'Característica {top_features[0]}')
+        ax.set_ylabel(f'Característica {top_features[1]}')
         plt.show()
     
    
@@ -186,14 +203,15 @@ for name, model in models:
 #------------------------------------------------------------------------------------------
 
 # Elbow Method
+km = range(1,11)
 inertias = []
 
-for i in range(1,11):
+for i in km:
     kmeans = KMeans(n_clusters=i)
     kmeans.fit(x_train)
     inertias.append(kmeans.inertia_)
 
-plt.plot(range(1,11), inertias, marker='o') # Un modelo bueno es aquel con una inercia alta y un bajo número de grupos (K)
+plt.plot(km, inertias, marker='o') # Un modelo bueno es aquel con una inercia alta y un bajo número de grupos (K)
 plt.title('Elbow method')
 plt.xlabel('Number of clusters')
 plt.ylabel('Inertia')
@@ -201,9 +219,8 @@ plt.show()
 
 k = int(input("\n----- Ingrese el numero de clusters para el modelo k-Means = "))
 
-# Determinar las variables con mas peso del dataset
-
-kmeans = KMeans(n_clusters=k) # Train model
+#Train model K-Means
+kmeans = KMeans(n_clusters=k, init='random', max_iter=200, random_state=0) # Train model
 kmeans.fit(x_train) 
 
 # Graph K-Means
@@ -211,11 +228,14 @@ labels = kmeans.labels_
 centroids = kmeans.cluster_centers_ # Coordenadas de los centroides de los clústeres
 
 # Dibujar los puntos de datos y los centroides
+fig = plt.figure()
 plt.scatter(x_train.iloc[:, top_feature_indices[0]], x_train.iloc[:, top_feature_indices[1]], c=y_train, cmap='viridis', label='Datos')
-plt.scatter(centroids[:, 0], centroids[:, 1], marker='o', s=200, c='red', label='Centroides')
+plt.scatter(centroids[:, 0], centroids[:, 1], marker='o', s=100, c='g', label='Centroides')
 plt.xlabel(f'Característica {top_features[0]}')
 plt.ylabel(f'Característica {top_features[1]}')
+plt.legend()
 plt.title('KMeans Clustering')
 plt.show()
 
-# valancear los datos y mostrar luego los datos corregidos y los no corregidos
+for name, accuracy in prec:
+    print(f'{name} Precisión en el conjunto de prueba: {accuracy * 100:.2f}%\n')
