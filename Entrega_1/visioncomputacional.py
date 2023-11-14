@@ -14,8 +14,8 @@ blur = None
 canny = None
 binary = None
 # Image dimension crop
-weidth_cut = 70
-height_cut = 70
+weidth_cut = 100
+height_cut = 100
 
 # functions Process------------------------------------------------------------------------------
 def getPoints(event, x, y, flags, param):
@@ -59,17 +59,17 @@ def refPoints():  # detected start and finish
     start_center = center(mask_red)
     if start_center:
         srcStart = start_center
-        print("Inicio: ", start_center)
     else:
-        srcStart = (0, 0)
+        srcStart = (0,0)
 
     # Comprobar si hay algún píxel azul
     finish_center = center(mask_blue)
     if finish_center:
         srcFinish = finish_center
-        print("Final: ", finish_center)
     else:
         srcFinish = (40, 40)
+    
+    print(f'Incio: {start_center} | Final: {finish_center}')
 
 def DrawContours(matriz):  # delimits the objects it detects
     global cutImage
@@ -131,7 +131,7 @@ def Preprocess(frame):
         auxrow = [] #guarda temporalemente la informacion de cada fila
         for j in range(len(frameCircuit[0])):
             if frameCircuit[i][j] == 0:
-              auxrow.append(255)
+                auxrow.append(255)
             else:
                 auxrow.append(0)
         checkup.append(auxrow)

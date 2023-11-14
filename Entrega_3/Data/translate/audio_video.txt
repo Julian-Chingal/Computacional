@@ -1,0 +1,10 @@
+This is a wood saw, but what would happen if, by accident, you touched it?
+Well, most wood saws have a protective device to save your finger or hand,
+and it's really impressive how it works.
+The saw blade transmits a small electrical signal.
+When the skin comes into contact with the blade, the signal changes because the human body is a driver.
+The signal change activates the security system, which activates the brake.
+At this moment, a high aluminum brake, the spinning stick, stops it in less than 5 milliseconds.
+Then, the blade pushes under the table, eliminating the risk of subsequent contact,
+and the engine is cut off.
+And in the process, saving your finger.

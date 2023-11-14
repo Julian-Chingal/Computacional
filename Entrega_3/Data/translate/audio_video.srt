@@ -1,0 +1,40 @@
+1
+00:00:00,000 --> 00:00:03,880
+This is a wood saw, but what would happen if, by accident, you touched it?
+
+2
+00:00:03,880 --> 00:00:09,040
+Well, most wood saws have a protective device to save your finger or hand,
+
+3
+00:00:09,040 --> 00:00:11,280
+and it's really impressive how it works.
+
+4
+00:00:11,280 --> 00:00:14,120
+The saw blade transmits a small electrical signal.
+
+5
+00:00:14,120 --> 00:00:18,800
+When the skin comes into contact with the blade, the signal changes because the human body is a driver.
+
+6
+00:00:18,800 --> 00:00:22,040
+The signal change activates the security system, which activates the brake.
+
+7
+00:00:22,040 --> 00:00:27,680
+At this moment, a high aluminum brake, the spinning stick, stops it in less than 5 milliseconds.
+
+8
+00:00:27,720 --> 00:00:32,000
+Then, the blade pushes under the table, eliminating the risk of subsequent contact,
+
+9
+00:00:32,000 --> 00:00:33,880
+and the engine is cut off.
+
+10
+00:00:33,880 --> 00:00:35,880
+And in the process, saving your finger.
+
