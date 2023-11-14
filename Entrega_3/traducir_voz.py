@@ -23,7 +23,7 @@ print(f'\nMicrofono utilizado ${default_device_name}')
 def recognize_speech():
     with mic as source:
         r.adjust_for_ambient_noise(source)
-        print("Di algo... (Presiona la tecla 'Esc' para detener)")
+        print("Di algo... ")
 
         while True: 
             try:
@@ -40,8 +40,7 @@ def recognize_speech():
                 pass  
             except sr.RequestError as e:
                 print("Error al solicitar resultados: {0}".format(e))
-            # if keyboard.is_pressed('Esc'):
-            #     break
+            
 
 # Crear un hilo para reconocer el habla
 speech_thread = threading.Thread(target=recognize_speech)
