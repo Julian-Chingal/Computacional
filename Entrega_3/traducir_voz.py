@@ -32,7 +32,7 @@ def recognize_speech():
                 print(f'\ntext: {text}')
 
                 # Traducir el texto al inglés
-                translation = trans.translate(text, src='es', dest='en')
+                translation = trans.translate(text, src='es', dest='pt')
                 print(f'(English): {translation.text}')
             except sr.WaitTimeoutError:
                 print("tiempo de espera agotado")

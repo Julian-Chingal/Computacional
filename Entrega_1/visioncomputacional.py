@@ -188,6 +188,49 @@ def drawCircuit(matriz):
     plt.axis('off')  # Ocultar ejes
     plt.show()
 
+# PLT ----------------------------------------------------------------------------------------
+def drawCircuit1(matriz):
+    matriz = np.array(matriz)
+    ag = AlgoritmoGenetico(matriz, srcStart, srcFinish)
+
+    trajectory = ag.AG()
+
+    # Crear una imagen vacía
+    img = np.zeros((matriz.shape[0], matriz.shape[1], 3), dtype=np.uint8)
+
+    # Iterar a través de la matriz y dibujar los rectángulos
+    for row in range(matriz.shape[0]):
+        for column in range(matriz.shape[1]):
+            if matriz[row][column] == 1:
+                cv.rectangle(img, (column, row), (column + 1, row + 1), (0, 0, 0), 1)
+            else:
+                cv.rectangle(img, (column, row), (column + 1, row + 1), (255, 255, 255), 1)
+
+    # Dibujar la trayectoria
+    for i in range(len(trajectory) - 1):
+        x1, y1 = trajectory[i]
+        x2, y2 = trajectory[i + 1]
+        cv.line(img, (x1, y1), (x2, y2), (0, 255, 0), 1)
+
+    # Crear una nueva ventana
+    cv.namedWindow("Circuit", cv.WINDOW_NORMAL)
+
+    # Ajustar el tamaño de la ventana
+    cv.resizeWindow("Circuit", 800, 600)
+
+    # Dibujar las líneas verticales
+    for i in range(0, img.shape[1], 20):
+        cv.line(img, (i, 0), (i, img.shape[0]), (255, 255, 255), 1)
+
+    # Dibujar las líneas horizontales
+    for i in range(0, img.shape[0], 20):
+        cv.line(img, (0, i), (img.shape[1], i), (255, 255, 255), 1)
+
+    # Mostrar la imagen en la nueva ventana
+    cv.imshow("Circuit", img)
+
+    return img
+
 # video capture
 cap = cv.VideoCapture(0)
 
@@ -216,7 +259,7 @@ while cap.isOpened():
         DrawContours(canny)
 
         # router
-        drawCircuit(blur)
+        drawCircuit1(blur)
 
         # Show
         cutImage = cv.resize(cutImage, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
