@@ -1,21 +1,23 @@
+import time
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+# archivos
 from GA import AlgoritmoGenetico
+from Api import *
 
 # variables
 srcPoints = []
 srcStart = (0, 0)
 srcFinish = (40, 40)
-# preprocess variables
-cutImage = None
-gray = None
-blur = None
-canny = None
-binary = None
 # Image dimension crop
 weidth_cut = 100
 height_cut = 100
+# object color
+#limites para caluclar el color del objeto
+limRedMax = 30
+limBlueMax = 30
+limGreenMax = 30
 
 # functions Process------------------------------------------------------------------------------
 def getPoints(event, x, y, flags, param):
@@ -24,7 +26,6 @@ def getPoints(event, x, y, flags, param):
         print("Punto agregado: ", x, y)
 
 def center(mask):  # print point start and finish
-    global cutImage
     contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
     if len(contours) > 0:  
@@ -39,8 +40,8 @@ def center(mask):  # print point start and finish
     
     return None
 
-def refPoints():  # detected start and finish
-    global cutImage, srcStart, srcFinish
+def refPoints(cutImage):  # detected start and finish
+    global srcStart, srcFinish
     # saturar la img
     hsv_frame = cv.cvtColor(cutImage, cv.COLOR_BGR2HSV)
 
@@ -71,8 +72,7 @@ def refPoints():  # detected start and finish
     
     print(f'Incio: {start_center} | Final: {finish_center}')
 
-def DrawContours(matriz):  # delimits the objects it detects
-    global cutImage
+def DrawContours(matriz, cutImage):  # delimits the objects it detects
     # Contours
     contours, _ = cv.findContours(matriz, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
@@ -88,12 +88,8 @@ def DrawContours(matriz):  # delimits the objects it detects
             # cv.putText(cutImage, 'Alto: ' + str(int(h)), (x + w +10, y + 20), cv.FONT_HERSHEY_COMPLEX, 0.4, (0, 255, 0),1)
 
 def Preprocess(frame):
-    global srcPoints, cutImage, gray, blur, height_cut, weidth_cut, canny, binary
-    #limites para caluclar el color del objeto
-    limRedMax = 30
-    limBlueMax = 30
-    limGreenMax = 30
-
+    global srcPoints, height_cut, weidth_cut
+    
     # Points
     srcPoints = np.float32(srcPoints)
     dstPoints = np.array([[0, 0], [weidth_cut, 0], [weidth_cut, height_cut], [0, height_cut]],dtype=np.float32,)  # img definir tamaño
@@ -146,6 +142,8 @@ def Preprocess(frame):
 
     # Canny detection
     canny = cv.Canny(blur, 100, 150)
+
+    return cutImage, blur, canny, binary
 
 def empty(a):
     pass
@@ -247,19 +245,22 @@ while cap.isOpened():
     ret, frame = cap.read()
     frame = cv.flip(frame, 1)  # eliminar efecto espejo
 
+    # Control FPS
+    time.sleep(0.035)
+
     if not ret:  # si no retorna img se rompe el ciclo
         break
 
     if len(srcPoints) == 4:  # hasta que no seleccione los 4
         # Preproces
-        Preprocess(frame)
+        cutImage, blur, canny, binary = Preprocess(frame)
 
         # contours
-        refPoints()
-        DrawContours(canny)
+        refPoints(cutImage)
+        DrawContours(canny, cutImage)
 
         # router
-        drawCircuit1(blur)
+        # drawCircuit1(blur)
 
         # Show
         cutImage = cv.resize(cutImage, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
