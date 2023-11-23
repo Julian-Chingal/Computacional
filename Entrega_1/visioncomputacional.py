@@ -9,11 +9,11 @@ from Api import *
 # variables
 srcPoints = []
 srcStart = (0, 0)
-srcFinish = (40, 40)
+srcFinish = (100, 100)
 # Image dimension crop
 weidth_cut = 100
 height_cut = 100
-# object color
+
 #limites para caluclar el color del objeto
 limRedMax = 30
 limBlueMax = 30
@@ -260,7 +260,7 @@ while cap.isOpened():
         DrawContours(canny, cutImage)
 
         # router
-        # drawCircuit1(blur)
+        drawCircuit(blur)
 
         # Show
         cutImage = cv.resize(cutImage, None, fx=7, fy=7, interpolation=cv.INTER_LINEAR)  # esto es para escalar la img recortada
