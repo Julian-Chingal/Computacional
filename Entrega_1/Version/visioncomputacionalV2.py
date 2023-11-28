@@ -13,7 +13,6 @@ srcFinish = (700, 700)
 srcCar = (0,0)
 
 route_update = True
-trajectory = None
 # Image dimension crop
 ancho = 93  # 93
 alto = 93   # 93
@@ -21,7 +20,12 @@ anchopx = 800 # Ancho fijo en pixeles 800
 pxporcm = round(anchopx/ancho)
 altopx = pxporcm*alto
 
-#? functions Process------------------------------------------------------------------------------
+#limites para caluclar el color del objeto
+limRedMax = 30
+limBlueMax = 30
+limGreenMax = 30
+
+# functions Process------------------------------------------------------------------------------
 def getPoints(event, x, y, flags, param):
     if event == cv.EVENT_LBUTTONDOWN:
         srcPoints.append((x, y))
@@ -57,8 +61,6 @@ def refCar(img): # Referencia centro del carro
 
     if ref_car:
         srcCar = ref_car
-        cv.circle(img, srcCar, 0, (0,0,255), thickness=15)
-        cv.putText(img, ' Inicio', (srcCar[0], srcCar[1] + 20), cv.FONT_HERSHEY_COMPLEX, 0.6, (0, 0, 0), 1)
     else:
         srcCar = (0,0)
 
@@ -82,9 +84,6 @@ def refPoints(img):  # detected start and finish
     start_center = center(mask_red)
     if start_center:
         srcStart = start_center
-        cv.circle(img, srcStart, 0, (0,0,255), thickness=15)
-        cv.putText(img, ' Inicio', (srcStart[0], srcStart[1] + 20), cv.FONT_HERSHEY_COMPLEX, 0.6, (0, 0, 0), 1)
-
     else:
         srcStart = (0,0)
 
@@ -92,9 +91,6 @@ def refPoints(img):  # detected start and finish
     finish_center = center(mask_blue)
     if finish_center:
         srcFinish = finish_center
-        cv.circle(img, srcFinish, 0, (255,0,0), thickness=15)
-        cv.putText(img, ' Meta', (srcFinish[0],srcFinish[1] + 20 ), cv.FONT_HERSHEY_COMPLEX, 0.6, (0, 0, 0),1)
-
     else:
         srcFinish = (40, 40)
     
@@ -141,22 +137,17 @@ def Preprocess(frame, width, height):
     
     return cutImage, canny, thresh
 
-def object_color(cutImage): # Detectar objetos de un color determinado
+def object_color(cutImage):
     # Rangos color, rojo
-    # lower_color = np.array([0, 100, 100])
-    # upper_color = np.array([10, 255, 255])
-
-    # Rangos color, verde
-    lower_color = np.array([36, 0, 0]) # Verde oscuro
-    upper_color = np.array([70, 255,255]) # Verde claro
-
+    lower_color = np.array([0, 100, 100])
+    upper_color = np.array([10, 255, 255])
     
     # Convertir a espacio de color HSV
     hsv = cv.cvtColor(cutImage, cv.COLOR_BGR2HSV)
 
     # Crea una máscara usando el rango de colores definido
     mask = cv.inRange(hsv, lower_color, upper_color)
-    kernel = np.ones((5, 5), np.uint8) # reduce el ruido 5x5
+    kernel = np.ones((5, 5), np.uint8)
     mask_filtered = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
 
     return mask_filtered
@@ -164,15 +155,32 @@ def object_color(cutImage): # Detectar objetos de un color determinado
 def empty(a):
     pass
 
-#? Graph and generate -----------------------------------------------------------------------------------------------------
-def drawCircuit(matrix, cutImage):
-    global srcStart, srcFinish, route_update, trajectory
+# PLT ----------------------------------------------------------------------------------------
+def drawCircuit(matriz):
+    global srcStart, srcFinish
+    matriz = np.array(matriz)
+    ag = AlgoritmoGenetico(matriz, srcStart , srcFinish)
 
-    if route_update:
-        matrix = np.array(matrix)
-        ag = AlgoritmoGenetico(matrix, srcStart, srcFinish)
-        trajectory = ag.AG()
-        route_update = False
+    trajectory = ag.AG()
+
+    print(trajectory)
+
+    # Dibujar las trayectorias
+    colors = ['red', 'blue', 'green', 'orange', 'purple']  # Colores para las trayectorias
+    for i, trajectory in enumerate(ag.last_trajectories):
+        color = colors[i % len(colors)]
+        for j in range(len(trajectory) - 1):
+            x1, y1 = trajectory[j]
+            x2, y2 = trajectory[j + 1]
+
+# PLT ----------------------------------------------------------------------------------------
+def drawCircuit1(matrix, cutImage):
+    global srcStart, srcFinish
+
+    matrix = np.array(matrix)
+    ag = AlgoritmoGenetico(matrix, srcStart, srcFinish)
+
+    trajectory = ag.AG()
 
     # Iterar a través de la matriz y dibujar los rectángulos
     for row in range(matrix.shape[0]):
@@ -188,11 +196,12 @@ def drawCircuit(matrix, cutImage):
         x2, y2 = trajectory[i + 1]
         cv.line(cutImage, (x1, y1), (x2, y2), (0, 255, 0), 1)
 
+    cv.imshow("Cut", cutImage)
     
 # video capture
 cap = cv.VideoCapture(1)
 
-#? Events -----------------------------------------------------------------------------------------
+# Events -----------------------------------------------------------------------------------------
 cv.namedWindow("Original")
 cv.setMouseCallback("Original", getPoints)
 # --
@@ -200,7 +209,7 @@ cv.namedWindow("Parameters")
 cv.resizeWindow("Parameters", 400, 50)
 cv.createTrackbar("Area", "Parameters", 400, 1000, empty)
 
-#? start  -----------------------------------------------------------------------------------------
+# start  -----------------------------------------------------------------------------------------
 while cap.isOpened():
     ret, frame = cap.read()
     frame = cv.flip(frame, 1)  # eliminar efecto espejo
@@ -215,16 +224,14 @@ while cap.isOpened():
         # Preproces
         cutImage,  canny, thresh = Preprocess(frame,anchopx,altopx)
 
-        # Ref
-        refPoints(cutImage)
-        refCar(cutImage)
-
         # contours
+        refPoints(cutImage)
         DrawContours(canny, cutImage)
 
         # router
-        # drawCircuit(thresh, thresh)
-            
+        if route_update:
+            drawCircuit1(thresh, cutImage)
+            route_update = False
 
         # Show
         cv.imshow("Cut", cutImage)

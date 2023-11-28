@@ -2,8 +2,8 @@ import numpy as np
 import random
 
 class AlgoritmoGenetico:
-    def __init__(self, matrizImg, srcStart, srcFinish, tam_population = 20, num_parents = 50, mutation_pro = 0.001, max_generations = 100):
-        self.matrizImg = matrizImg
+    def __init__(self, imgMatrix, srcStart, srcFinish, tam_population = 20, num_parents = 50, mutation_pro = 0.001, max_generations = 100):
+        self.imgMatrix = imgMatrix
         self.srcStart = srcStart
         self.srcFinish = srcFinish
         self.tam_population = tam_population
@@ -23,16 +23,16 @@ class AlgoritmoGenetico:
             while (x, y) != self.srcFinish:
                 options = []
                 # Movimiento hacia la derecha
-                if x < self.srcFinish[0] and (x + 1, y) not in routesVisited and self.matrizImg[x + 1, y] != 1:
+                if x < self.srcFinish[0] and (x + 1, y) not in routesVisited and self.imgMatrix[x + 1, y] != 1:
                     options.append((x + 1, y))
                 # Movimiento hacia arriba
-                if y < self.srcFinish[1] and (x, y + 1) not in routesVisited and self.matrizImg[x, y + 1] != 1:
+                if y < self.srcFinish[1] and (x, y + 1) not in routesVisited and self.imgMatrix[x, y + 1] != 1:
                     options.append((x, y + 1))
                 # Movimiento hacia la izquierda
-                if x > self.srcFinish[0] and (x - 1, y) not in routesVisited and self.matrizImg[x - 1, y] != 1:
+                if x > self.srcFinish[0] and (x - 1, y) not in routesVisited and self.imgMatrix[x - 1, y] != 1:
                     options.append((x - 1, y))
                 # Movimiento hacia abajo
-                if y > self.srcFinish[1] and (x, y - 1) not in routesVisited and self.matrizImg[x, y - 1] != 1:
+                if y > self.srcFinish[1] and (x, y - 1) not in routesVisited and self.imgMatrix[x, y - 1] != 1:
                     options.append((x, y - 1))
                 if options:
                     x, y = random.choice(options)
@@ -99,7 +99,7 @@ class AlgoritmoGenetico:
 
                 for dx, dy in movements:
                     new_x, new_y = x + dx, y + dy
-                    if(0<= new_x < len(self.matrizImg) and 0 <= new_y < len(self.matrizImg[0]) and self.matrizImg[new_x, new_y]):
+                    if(0<= new_x < len(self.imgMatrix) and 0 <= new_y < len(self.imgMatrix[0]) and self.imgMatrix[new_x, new_y]):
                         options.append((new_x, new_y))
                 
                 if options:
@@ -116,13 +116,6 @@ class AlgoritmoGenetico:
             
             # mejor trayectoria de la generación actual
             best_guy = population[np.argmin(fitness_population)]  #mejor individuo
-            best_fitness = min(fitness_population)                #mejor fitness
-
-            # Mostrar información de la generación actual
-            # print("Generación:", current_generation + 1)
-            # print("Mejor trayectoria:", best_guy)
-            # print("Fitness:", best_fitness)
-            # print("------------------------------------")
             
              # Almacenar las últimas 5 trayectorias
             if len(self.last_trajectories) < 5:
