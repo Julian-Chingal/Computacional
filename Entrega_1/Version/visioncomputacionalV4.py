@@ -9,14 +9,15 @@ from Api import *
 # variables
 srcPoints = []
 srcStart = (0, 0)
-srcFinish = (400, 400)
+srcFinish = (700, 700)
+srcCar = (0,0)
 
 route_update = True
 trajectory = None
 # Image dimension crop
 ancho = 93  # 93
 alto = 93   # 93
-anchopx = 700 # Ancho fijo en pixeles 800
+anchopx = 800 # Ancho fijo en pixeles 800
 pxporcm = round(anchopx/ancho)
 altopx = pxporcm*alto
 
@@ -41,22 +42,41 @@ def center(mask):  # print point start and finish
     
     return None
 
+def refCar(img): # Referencia centro del carro 
+    global srcCar
+
+    hsv_frame = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+
+    # limite color Amarillo para detectar carro
+    lower_color = np.array([15, 100, 20]) 
+    upper_color = np.array([45, 255, 255]) 
+
+    mask_color = cv.inRange(hsv_frame, lower_color, upper_color)
+
+    ref_car = center(mask_color)
+
+    if ref_car:
+        srcCar = ref_car
+        cv.circle(img, srcCar, 0, (255,255,255), thickness=15)
+        cv.putText(img, ' Carro', (srcCar[0], srcCar[1] + 20), cv.FONT_HERSHEY_COMPLEX, 0.6, (0, 0, 0), 1)
+    else:
+        srcCar = (0,0)
+
 def refPoints(img):  # detected start and finish
     global srcStart, srcFinish
     # saturar la img
     hsv_frame = cv.cvtColor(img, cv.COLOR_BGR2HSV)
 
-    # limite color Amarillo para detectar carro
-    lower_color_1 = np.array([15, 100, 20]) 
-    upper_color_1 = np.array([45, 255, 255]) 
+    # Definir rangos de color
+    lower_red = np.array([0, 100, 100])
+    upper_red = np.array([10, 255, 255])
 
-    # Final rojo
-    lower_color_2 = np.array([0, 100, 100])
-    upper_color_2 = np.array([10, 255, 255])
+    lower_blue = np.array([100, 100, 100])
+    upper_blue = np.array([130, 255, 255]) 
 
     # Filtra los píxeles de color rojo y azul
-    mask_red = cv.inRange(hsv_frame, lower_color_1, upper_color_1)
-    mask_blue = cv.inRange(hsv_frame, lower_color_2, upper_color_2)
+    mask_red = cv.inRange(hsv_frame, lower_red, upper_red)
+    mask_blue = cv.inRange(hsv_frame, lower_blue, upper_blue)
 
     # Comprobar si hay algún píxel rojo
     start_center = center(mask_red)
@@ -116,7 +136,7 @@ def Preprocess(frame, width, height):
     # thresh = cv.bitwise_not(thresh)
 
     # Canny detection
-    canny = cv.Canny(thresh, 100, 150)
+    canny = cv.Canny(detColor, 100, 150)
      
     
     return cutImage, canny, thresh
@@ -127,9 +147,10 @@ def object_color(cutImage): # Detectar objetos de un color determinado
     # upper_color = np.array([10, 255, 255])
 
     # Rangos color, verde
-    lower_color = np.array([40, 40, 40])
-    upper_color = np.array([80, 255, 255])  
+    lower_color = np.array([36, 0, 0]) # Verde oscuro
+    upper_color = np.array([70, 255,255]) # Verde claro
 
+    
     # Convertir a espacio de color HSV
     hsv = cv.cvtColor(cutImage, cv.COLOR_BGR2HSV)
 
@@ -148,22 +169,26 @@ def drawCircuit(matrix, cutImage):
     global srcStart, srcFinish, route_update, trajectory
 
     if route_update:
-        matrix = matrix / 255.0 # Transformar valores de 255 a 1
+        matrix = matrix / 255.0
+        print(matrix)
         ag = AlgoritmoGenetico(matrix, srcStart, srcFinish)
-        trajectory = ag.get_resultado(pxporcm)
+        trajectory = ag.AG()
         print(trajectory)
-        
-        # a = post_route(trajectory)
-        # print(a)
-
+        # post("trayectory", trajectory)
+        # print(post)
+        plt.imshow(matrix, cmap='gray')
+        plt.title('Matriz después de invertir valores')
+        plt.colorbar()
+        plt.show()
         route_update = False
 
     # Dibujar la trayectoria
     for i in range(len(trajectory) - 1):
-        x1, y1, x2, y2, g, l = trajectory[i]
+        x1, y1 = trajectory[i]
+        x2, y2 = trajectory[i + 1]
         cv.line(cutImage, (x1, y1), (x2, y2), (255, 255, 255), 2)
     
-#! video capture
+# video capture
 cap = cv.VideoCapture(1)
 
 #? Events -----------------------------------------------------------------------------------------
@@ -191,6 +216,7 @@ while cap.isOpened():
 
         # Ref
         refPoints(cutImage)
+        refCar(cutImage)
 
         # contours
         DrawContours(canny, cutImage)
