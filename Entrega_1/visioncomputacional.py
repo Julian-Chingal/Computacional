@@ -9,14 +9,14 @@ from Api import *
 # variables
 srcPoints = []
 srcStart = (0, 0)
-srcFinish = (400, 400)
+srcFinish = (300, 300)
 
 route_update = True
 trajectory = None
 # Image dimension crop
-ancho = 93  # 93
-alto = 93   # 93
-anchopx = 700 # Ancho fijo en pixeles 800
+ancho = 90   # 93
+alto =  90 # 93
+anchopx = 500 # Ancho fijo en pixeles 800
 pxporcm = round(anchopx/ancho)
 altopx = pxporcm*alto
 
@@ -122,13 +122,20 @@ def Preprocess(frame, width, height):
     return cutImage, canny, thresh
 
 def object_color(cutImage): # Detectar objetos de un color determinado
-    # Rangos color, rojo
-    # lower_color = np.array([0, 100, 100])
-    # upper_color = np.array([10, 255, 255])
+    low_1 = cv.getTrackbarPos("low_1", "Parameters")
+    low_2 = cv.getTrackbarPos("low_2", "Parameters")
+    low_3 = cv.getTrackbarPos("low_3", "Parameters")
 
+    upp_1 = cv.getTrackbarPos("upp_1", "Parameters")
+    upp_2 = cv.getTrackbarPos("upp_2", "Parameters")
+    upp_3 = cv.getTrackbarPos("upp_3", "Parameters")
+    
     # Rangos color, verde
-    lower_color = np.array([40, 40, 40])
-    upper_color = np.array([80, 255, 255])  
+    lower_color = np.array([low_1, low_2, low_3])
+    upper_color = np.array([upp_1, upp_2, upp_3])
+
+    # lower_color = np.array([36, 0, 0]) # Verde oscuro
+    # upper_color = np.array([70, 255,255]) # Verde claro
 
     # Convertir a espacio de color HSV
     hsv = cv.cvtColor(cutImage, cv.COLOR_BGR2HSV)
@@ -153,14 +160,16 @@ def drawCircuit(matrix, cutImage):
         trajectory = ag.get_resultado(pxporcm)
         print(trajectory)
         
-        # a = post_route(trajectory)
-        # print(a)
+        a = post_route(trajectory)
+        print(a)
 
         route_update = False
 
-    # Dibujar la trayectoria
+    #Dibujar la trayectoria
     for i in range(len(trajectory) - 1):
-        x1, y1, x2, y2, g, l = trajectory[i]
+        x1, y1 , e, a, cm, g= trajectory[i]
+        x2, y2 , e, a, cm, g= trajectory[i+1]
+
         cv.line(cutImage, (x1, y1), (x2, y2), (255, 255, 255), 2)
     
 #! video capture
@@ -171,8 +180,14 @@ cv.namedWindow("Original")
 cv.setMouseCallback("Original", getPoints)
 # --
 cv.namedWindow("Parameters")
-cv.resizeWindow("Parameters", 400, 50)
-cv.createTrackbar("Area", "Parameters", 400, 1000, empty)
+cv.resizeWindow("Parameters", 400, 300)
+cv.createTrackbar("Area", "Parameters", 400, 255, empty)
+cv.createTrackbar("low_1", "Parameters", 36, 255, empty)
+cv.createTrackbar("low_2", "Parameters", 0, 255, empty)
+cv.createTrackbar("low_3", "Parameters", 0, 255, empty)
+cv.createTrackbar("upp_1", "Parameters", 70, 255, empty)
+cv.createTrackbar("upp_2", "Parameters", 255, 255, empty)
+cv.createTrackbar("upp_3", "Parameters", 255, 255, empty)
 
 #? start  -----------------------------------------------------------------------------------------
 while cap.isOpened():
@@ -195,19 +210,22 @@ while cap.isOpened():
         # contours
         DrawContours(canny, cutImage)
 
-        # router
-        drawCircuit(thresh, cutImage)
-       
+        if cv.waitKey(1) & 0xFF == ord("u"):
+            drawCircuit(thresh, cutImage)
+
 
         # Show
         cv.imshow("Cut", cutImage)
         cv.imshow("Thres", thresh)
-        cv.imshow("canny", canny)
-
+        cv.imshow("canny", canny) 
+            
     else:
         for corner in srcPoints:  # mostrar los puntos
             cv.circle(frame, corner, 2, (0, 0, 255), -1)
         cv.imshow("Original", frame)
+    
+    
+
     # exit
     if cv.waitKey(1) & 0xFF == ord("q"):
         break

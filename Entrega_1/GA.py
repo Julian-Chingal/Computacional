@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import math
+from scipy.ndimage import zoom
 
 class AlgoritmoGenetico:
     def __init__(self, imgMatrix, srcStart, srcFinish, tam_population = 20, num_parents = 50, mutation_pro = 0.001, max_generations = 100):
@@ -16,10 +17,11 @@ class AlgoritmoGenetico:
     
     def get_resultado(self, pxcms):
         best = self.AG()
+        print(best)
         for j in range(len(best) - 1):
             x1, y1 = best[j]
             x2, y2 = best[j + 1]
-            xr1,yr1,xr2,yr2 = y1*10, x1*10, y2*10, x2*10
+            xr1,yr1,xr2,yr2 = y1, x1, y2, x2
             grados = self.calcular_grados(xr1, yr1, xr2, yr2)
             longitudPx = self.calcular_segmento(xr1, yr1, xr2, yr2)
             #print("AG: ",x1,",",y1,",",x2,",",y2)
@@ -33,13 +35,14 @@ class AlgoritmoGenetico:
         return ang_grados
 
     def calcular_segmento(self, x1, y1, x2, y2):
-        distancia = math.sqrt((x2 - x1)*2 + (y2 - y1)*2)
+        distancia = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        distancia = distancia / 2
+
         return distancia
     
     #Inciar la poblacion 
     def initialize_population(self):
         population = []
-
         for _ in range(self.tam_population):
             trajectory = [self.srcStart]
             x, y = self.srcStart
