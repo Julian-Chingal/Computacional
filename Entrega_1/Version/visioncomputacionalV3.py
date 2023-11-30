@@ -3,8 +3,8 @@ import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
 # archivos
-from GA import AlgoritmoGenetico
-from Api import *
+from GAV1 import AlgoritmoGenetico
+# from Api import *
 
 # variables
 srcPoints = []

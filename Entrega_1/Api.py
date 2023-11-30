@@ -71,8 +71,8 @@ def enviar_trayectoria(endpoint, cola_trayectoria):
         punto = cola_trayectoria.get()
         if punto is None:
             break
-        x, y, x2, y2, cm, degree = punto
-        data.append({"x_route": x, "y_route": y,"cm_route": 20, "degree_route": degree, "state": True})  # Ajusta según la estructura real
+        x, y, x2, y2= punto
+        data.append({"x_route": x, "y_route": y, "state": True})  # Ajusta según la estructura real
 
     # Realizar la solicitud POST usando la función make_request_post
     resultado_post_route = make_request_post(endpoint, data)

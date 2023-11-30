@@ -3,8 +3,8 @@ import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
 # archivos
-from GA import AlgoritmoGenetico
-from Api import *
+from GAV3 import AlgoritmoGenetico
+# from Api import *
 
 # variables
 srcPoints = []
@@ -127,8 +127,8 @@ def object_color(cutImage): # Detectar objetos de un color determinado
     # upper_color = np.array([10, 255, 255])
 
     # Rangos color, verde
-    lower_color = np.array([40, 40, 40])
-    upper_color = np.array([80, 255, 255])  
+    lower_color = np.array([71, 92, 0])
+    upper_color = np.array([101, 255, 255])  
 
     # Convertir a espacio de color HSV
     hsv = cv.cvtColor(cutImage, cv.COLOR_BGR2HSV)

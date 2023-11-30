@@ -2,6 +2,7 @@ import time
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+import threading as t
 # archivos
 from GA import AlgoritmoGenetico
 from Api import *
@@ -12,11 +13,12 @@ srcStart = (0, 0)
 srcFinish = (300, 300)
 
 route_update = True
-trajectory = None
+trajectory = []
+trajectory_original_size = []
 # Image dimension crop
-ancho = 90   # 93
-alto =  90 # 93
-anchopx = 500 # Ancho fijo en pixeles 800
+ancho = 175   # 175
+alto =  142 # 142
+anchopx = 800 # Ancho fijo en pixeles 800
 pxporcm = round(anchopx/ancho)
 altopx = pxporcm*alto
 
@@ -96,7 +98,7 @@ def DrawContours(matriz, cutImage):  # delimits the objects it detects
             # cv.putText(cutImage, 'Alto: ' + str(int(h)), (x + w +10, y + 20), cv.FONT_HERSHEY_COMPLEX, 0.4, (0, 255, 0),1)
 
 def Preprocess(frame, width, height):
-    global srcPoints, aa
+    global srcPoints
     
     # Points
     srcPoints = np.float32(srcPoints)
@@ -112,13 +114,9 @@ def Preprocess(frame, width, height):
     # Process
     _, thresh = cv.threshold(detColor, 100, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
      
-    # Invertir la máscara
-    # thresh = cv.bitwise_not(thresh)
-
     # Canny detection
     canny = cv.Canny(thresh, 100, 150)
      
-    
     return cutImage, canny, thresh
 
 def object_color(cutImage): # Detectar objetos de un color determinado
@@ -147,28 +145,66 @@ def object_color(cutImage): # Detectar objetos de un color determinado
 
     return mask_filtered
 
+def run_ag(matrix):
+    global srcStart, srcFinish
+    ag = AlgoritmoGenetico(matrix, srcStart, srcFinish)
+    trajectory = ag.AG()
+    return trajectory
+
 def empty(a):
     pass
 
 #? Graph and generate -----------------------------------------------------------------------------------------------------
 def drawCircuit(matrix, cutImage):
-    global srcStart, srcFinish, route_update, trajectory
+    global route_update, trajectory, trajectory_original_size
 
     if route_update:
         matrix = matrix / 255.0 # Transformar valores de 255 a 1
-        ag = AlgoritmoGenetico(matrix, srcStart, srcFinish)
-        trajectory = ag.get_resultado(pxporcm)
+        o_x, o_y = matrix.shape
+
+        #! Escalar
+        new_x = o_x//10
+        new_y = o_y//10
+
+        x1, y1 = srcStart
+        x2, y2 = srcFinish
+
+        # Aplicar la misma escala a los puntos de inicio y fin
+        re_x1 = int(x1 * (new_x / o_x) )
+        re_y1 = int(y1 * (new_y / o_y))
+        re_x2 = int(x2 * (new_x / o_x))
+        re_y2 = int(y2 * (new_y / o_y))
+
+        srcStart_re = (re_x1,re_y1)
+        srcFinish_re = (re_x2,re_y2)
+
+        print(srcStart_re)
+        print(srcFinish_re)
+
+        resize_matrix = cv.resize(matrix,(new_x,new_y), interpolation=cv.INTER_AREA)
+        resize_matrix = (resize_matrix != 0).astype(int)
+
+        plt.imshow(resize_matrix, cmap='gray')
+        plt.title('Matriz después de invertir valores')
+        plt.colorbar()
+        plt.show()
+
+        ag = AlgoritmoGenetico(resize_matrix, srcStart_re, srcFinish_re)
+        trajectory = ag.get_resultado()
+
         print(trajectory)
         
-        a = post_route(trajectory)
-        print(a)
-
+        # a = post_route(trajectory)
+        # print(a)
+        
         route_update = False
 
+        trajectory_original_size = [(int(x * (o_x / new_x)), int(y * (o_y / new_y))) for x, y, _, _ in trajectory]
+
     #Dibujar la trayectoria
-    for i in range(len(trajectory) - 1):
-        x1, y1 , e, a, cm, g= trajectory[i]
-        x2, y2 , e, a, cm, g= trajectory[i+1]
+    for i in range(len(trajectory_original_size) - 1):
+        x1, y1 = trajectory_original_size[i]
+        x2, y2 = trajectory_original_size[i+1]
 
         cv.line(cutImage, (x1, y1), (x2, y2), (255, 255, 255), 2)
     
@@ -181,11 +217,11 @@ cv.setMouseCallback("Original", getPoints)
 # --
 cv.namedWindow("Parameters")
 cv.resizeWindow("Parameters", 400, 300)
-cv.createTrackbar("Area", "Parameters", 400, 255, empty)
-cv.createTrackbar("low_1", "Parameters", 36, 255, empty)
-cv.createTrackbar("low_2", "Parameters", 0, 255, empty)
+cv.createTrackbar("Area", "Parameters", 400, 1000, empty)
+cv.createTrackbar("low_1", "Parameters", 71, 255, empty) #36
+cv.createTrackbar("low_2", "Parameters", 92, 255, empty) #73
 cv.createTrackbar("low_3", "Parameters", 0, 255, empty)
-cv.createTrackbar("upp_1", "Parameters", 70, 255, empty)
+cv.createTrackbar("upp_1", "Parameters", 101, 255, empty) #101
 cv.createTrackbar("upp_2", "Parameters", 255, 255, empty)
 cv.createTrackbar("upp_3", "Parameters", 255, 255, empty)
 
@@ -224,8 +260,6 @@ while cap.isOpened():
             cv.circle(frame, corner, 2, (0, 0, 255), -1)
         cv.imshow("Original", frame)
     
-    
-
     # exit
     if cv.waitKey(1) & 0xFF == ord("q"):
         break

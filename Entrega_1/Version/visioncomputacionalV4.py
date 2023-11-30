@@ -3,13 +3,13 @@ import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
 # archivos
-from GA import AlgoritmoGenetico
-from Api import *
+from GAV2 import AlgoritmoGenetico
+# from Api import *
 
 # variables
 srcPoints = []
 srcStart = (0, 0)
-srcFinish = (700, 700)
+srcFinish = (600, 600)
 srcCar = (0,0)
 
 route_update = True

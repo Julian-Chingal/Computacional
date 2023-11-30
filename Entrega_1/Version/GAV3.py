@@ -4,10 +4,10 @@ import math
 from scipy.ndimage import zoom
 
 class AlgoritmoGenetico:
-    def __init__(self, imgMatrix, srcStart, srcFinish, tam_population = 10, num_parents = 20, mutation_pro = 0, max_generations = 10):
+    def __init__(self, imgMatrix, srcStart, srcFinish, tam_population = 10, num_parents = 2, mutation_pro = 0, max_generations = 2):
         self.imgMatrix = imgMatrix 
         self.srcStart =  srcStart
-        self.srcFinish =  srcFinish 
+        self.srcFinish =  srcFinish
         self.tam_population = tam_population
         self.num_parents = num_parents
         self.mutation_pro = mutation_pro
@@ -15,16 +15,33 @@ class AlgoritmoGenetico:
         self.last_trajectories = []
         self.result = []
     
-    def get_resultado(self):
+    def get_resultado(self, pxcms):
+        ax, ay = self.imgMatrix.shape
+
+        print(ax,ay)
         best = self.AG()
+        print(best)
         for j in range(len(best) - 1):
             x1, y1 = best[j]
             x2, y2 = best[j + 1]
+            xr1,yr1,xr2,yr2 = y1, x1, y2, x2
+            grados = self.calcular_grados(xr1, yr1, xr2, yr2)
+            longitudPx = self.calcular_segmento(xr1, yr1, xr2, yr2)
             #print("AG: ",x1,",",y1,",",x2,",",y2)
-            print("AG-X10: ",x1,",",y1,",",x2,",",y2)
-            self.result.append((round(x1),round(y1),round(x2),round(y2))) # Multiplicar longitud por el factor de conversion (Esta en pixeles)
-        return self.result
+            print("AG-X10: ",xr1,",",yr1,",",xr2,",",yr2,", G: ",grados,", L: ",(longitudPx/pxcms))
+            self.result.append((round(xr1),round(yr1),round(xr2),round(yr2),(longitudPx/pxcms),round(grados))) # Multiplicar longitud por el factor de conversion (Esta en pixeles)
+        return self.result 
 
+    def calcular_grados(self, x1, y1, x2, y2):
+        ang_radianes = math.atan2(y2 - y1, x2 - x1)
+        ang_grados = math.degrees(ang_radianes)
+        return ang_grados
+
+    def calcular_segmento(self, x1, y1, x2, y2):
+        distancia = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        distancia = distancia / 2
+        return distancia
+    
     #Inciar la poblacion 
     def initialize_population(self):
         population = []
@@ -35,22 +52,23 @@ class AlgoritmoGenetico:
             
             while (x, y) != self.srcFinish:
                 options = []
-                # Movimiento hacia la derecha
-                if x < self.srcFinish[0] and (x + 1, y) not in routesVisited and self.imgMatrix[x + 1, y] != 1:
-                    options.append((x + 1, y))
-                # Movimiento hacia arriba
-                if y < self.srcFinish[1] and (x, y + 1) not in routesVisited and self.imgMatrix[x, y + 1] != 1:
-                    options.append((x, y + 1))
-                # Movimiento hacia la izquierda
-                if x > self.srcFinish[0] and (x - 1, y) not in routesVisited and self.imgMatrix[x - 1, y] != 1:
-                    options.append((x - 1, y))
-                # Movimiento hacia abajo
-                if y > self.srcFinish[1] and (x, y - 1) not in routesVisited and self.imgMatrix[x, y - 1] != 1:
-                    options.append((x, y - 1))
-                if options:
-                    x, y = random.choice(options)
-                    trajectory.append((x, y))
-                    routesVisited.add((x, y))
+                if 0 <= x < self.imgMatrix.shape[0] and 0 <= y + 1 < self.imgMatrix.shape[1]:
+                    # Movimiento hacia la derecha
+                    if x < self.srcFinish[0] and (x + 1, y) not in routesVisited and self.imgMatrix[x + 1, y] != 1:
+                        options.append((x + 1, y))
+                    # Movimiento hacia arriba
+                    if y < self.srcFinish[1] and (x, y + 1) not in routesVisited and self.imgMatrix[x, y + 1] != 1:
+                        options.append((x, y + 1))
+                    # Movimiento hacia la izquierda
+                    if x > self.srcFinish[0] and (x - 1, y) not in routesVisited and self.imgMatrix[x - 1, y] != 1:
+                        options.append((x - 1, y))
+                    # Movimiento hacia abajo
+                    if y > self.srcFinish[1] and (x, y - 1) not in routesVisited and self.imgMatrix[x, y - 1] != 1:
+                        options.append((x, y - 1))
+                    if options:
+                        x, y = random.choice(options)
+                        trajectory.append((x, y))
+                        routesVisited.add((x, y))
                 else:
                     if len(trajectory) == 1:
                         break
@@ -153,5 +171,5 @@ class AlgoritmoGenetico:
             population = new_generation
 
             current_generation += 1
-        print("ag", best_guy)
+        
         return best_guy
