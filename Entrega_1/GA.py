@@ -1,7 +1,5 @@
 import numpy as np
 import random
-import math
-from scipy.ndimage import zoom
 
 class AlgoritmoGenetico:
     def __init__(self, imgMatrix, srcStart, srcFinish, tam_population = 10, num_parents = 20, mutation_pro = 0, max_generations = 10):
@@ -20,10 +18,9 @@ class AlgoritmoGenetico:
         for j in range(len(best) - 1):
             x1, y1 = best[j]
             x2, y2 = best[j + 1]
-            #print("AG: ",x1,",",y1,",",x2,",",y2)
             print("AG-X10: ",x1,",",y1,",",x2,",",y2)
-            self.result.append((round(x1),round(y1),round(x2),round(y2))) # Multiplicar longitud por el factor de conversion (Esta en pixeles)
-        return self.result
+            self.result.append((round(x1),round(y1),round(x2),round(y2))) 
+            return self.result
 
     #Inciar la poblacion 
     def initialize_population(self):
@@ -31,35 +28,36 @@ class AlgoritmoGenetico:
         for _ in range(self.tam_population):
             trajectory = [self.srcStart]
             x, y = self.srcStart
-            routesVisited = set([self.srcStart]) #coordenadas visitadas
-            
+            routes_visited = set([self.srcStart])  # coordenadas visitadas
+
             while (x, y) != self.srcFinish:
-                options = []
-                # Movimiento hacia la derecha
-                if x < self.srcFinish[0] and (x + 1, y) not in routesVisited and self.imgMatrix[x + 1, y] != 1:
-                    options.append((x + 1, y))
-                # Movimiento hacia arriba
-                if y < self.srcFinish[1] and (x, y + 1) not in routesVisited and self.imgMatrix[x, y + 1] != 1:
-                    options.append((x, y + 1))
-                # Movimiento hacia la izquierda
-                if x > self.srcFinish[0] and (x - 1, y) not in routesVisited and self.imgMatrix[x - 1, y] != 1:
-                    options.append((x - 1, y))
-                # Movimiento hacia abajo
-                if y > self.srcFinish[1] and (x, y - 1) not in routesVisited and self.imgMatrix[x, y - 1] != 1:
-                    options.append((x, y - 1))
+                options = self.get_valid_moves(x, y, routes_visited)
                 if options:
                     x, y = random.choice(options)
                     trajectory.append((x, y))
-                    routesVisited.add((x, y))
+                    routes_visited.add((x, y))
                 else:
                     if len(trajectory) == 1:
                         break
                     trajectory.pop()
                     x, y = trajectory[-1]
-            
+
             population.append(trajectory)
 
         return population
+    
+     # Obtener movimientos válidos desde una posición
+    def get_valid_moves(self, x, y, routes_visited):
+        movements = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        options = []
+
+        for dx, dy in movements:
+            new_x, new_y = x + dx, y + dy
+            if 0 <= new_x < len(self.imgMatrix) and 0 <= new_y < len(self.imgMatrix[0]) and (
+                    new_x, new_y) not in routes_visited and self.imgMatrix[new_x, new_y] != 1:
+                options.append((new_x, new_y))
+
+        return options
     
     #funcion de fitness
     def fitness(self, individuo):

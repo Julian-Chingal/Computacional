@@ -5,7 +5,7 @@ import threading
 base_url = "https://api-car-dev-dkkz.4.us-1.fl0.io/api/"
 
 # Función para hacer una solicitud POST
-def make_request_post(endpoint, data):
+def request_post(endpoint, data):
     try:
         url = f"{base_url}{endpoint}"
 
@@ -20,7 +20,7 @@ def make_request_post(endpoint, data):
         print(f"Error en la solicitud: {e}")
         return None
 
-def make_request_delete(endpoint):
+def request_delete(endpoint):
     try:
         url = f"{base_url}{endpoint}"
         
@@ -40,7 +40,7 @@ def make_request_delete(endpoint):
 def post_route(data):
     endpoint = "route"
 
-    make_request_delete(endpoint)
+    request_delete(endpoint)
 
     # Crear una cola para comunicarse con el hilo
     cola_trayectoria = Queue()
@@ -75,7 +75,7 @@ def enviar_trayectoria(endpoint, cola_trayectoria):
         data.append({"x_route": x, "y_route": y, "state": True})  # Ajusta según la estructura real
 
     # Realizar la solicitud POST usando la función make_request_post
-    resultado_post_route = make_request_post(endpoint, data)
+    resultado_post_route =  request_post(endpoint, data)
 
     # Colocar el resultado en la cola para que pueda ser obtenido por la función principal
     cola_trayectoria.put(resultado_post_route)

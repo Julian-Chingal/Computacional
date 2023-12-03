@@ -1,8 +1,6 @@
 import time
 import numpy as np
 import cv2 as cv
-import matplotlib.pyplot as plt
-import threading as t
 # archivos
 from GA import AlgoritmoGenetico
 from Api import *
@@ -16,8 +14,8 @@ route_update = True
 trajectory = []
 trajectory_original_size = []
 # Image dimension crop
-ancho = 175   # 175
-alto =  142 # 142
+ancho =  93   # 175
+alto =  93  # 142
 anchopx = 800 # Ancho fijo en pixeles 800
 pxporcm = round(anchopx/ancho)
 altopx = pxporcm*alto
@@ -49,8 +47,8 @@ def refPoints(img):  # detected start and finish
     hsv_frame = cv.cvtColor(img, cv.COLOR_BGR2HSV)
 
     # limite color Amarillo para detectar carro
-    lower_color_1 = np.array([15, 100, 20]) 
-    upper_color_1 = np.array([45, 255, 255]) 
+    lower_color_1 = np.array([10, 50, 50])
+    upper_color_1 = np.array([50, 255, 255])
 
     # Final rojo
     lower_color_2 = np.array([0, 100, 100])
@@ -61,7 +59,7 @@ def refPoints(img):  # detected start and finish
     mask_blue = cv.inRange(hsv_frame, lower_color_2, upper_color_2)
 
     # Comprobar si hay algún píxel rojo
-    start_center = center(mask_red)
+    start_center = center(mask_blue)
     if start_center:
         srcStart = start_center
         cv.circle(img, srcStart, 0, (0,0,255), thickness=15)
@@ -71,7 +69,7 @@ def refPoints(img):  # detected start and finish
         srcStart = (0,0)
 
     # Comprobar si hay algún píxel azul
-    finish_center = center(mask_blue)
+    finish_center = center(mask_red)
     if finish_center:
         srcFinish = finish_center
         cv.circle(img, srcFinish, 0, (255,0,0), thickness=15)
@@ -80,8 +78,6 @@ def refPoints(img):  # detected start and finish
     else:
         srcFinish = (40, 40)
     
-    # print(f'Incio: {start_center} | Final: {finish_center}')
-
 def DrawContours(matriz, cutImage):  # delimits the objects it detects
     # Contours
     contours, _ = cv.findContours(matriz, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
@@ -145,17 +141,11 @@ def object_color(cutImage): # Detectar objetos de un color determinado
 
     return mask_filtered
 
-def run_ag(matrix):
-    global srcStart, srcFinish
-    ag = AlgoritmoGenetico(matrix, srcStart, srcFinish)
-    trajectory = ag.AG()
-    return trajectory
-
 def empty(a):
     pass
 
 #? Graph and generate -----------------------------------------------------------------------------------------------------
-def drawCircuit(matrix, cutImage):
+def drawCircuit(matrix):
     global route_update, trajectory, trajectory_original_size
 
     if route_update:
@@ -178,38 +168,22 @@ def drawCircuit(matrix, cutImage):
         srcStart_re = (re_x1,re_y1)
         srcFinish_re = (re_x2,re_y2)
 
-        print(srcStart_re)
-        print(srcFinish_re)
-
         resize_matrix = cv.resize(matrix,(new_x,new_y), interpolation=cv.INTER_AREA)
         resize_matrix = (resize_matrix != 0).astype(int)
 
-        plt.imshow(resize_matrix, cmap='gray')
-        plt.title('Matriz después de invertir valores')
-        plt.colorbar()
-        plt.show()
-
         ag = AlgoritmoGenetico(resize_matrix, srcStart_re, srcFinish_re)
         trajectory = ag.get_resultado()
-
-        print(trajectory)
         
-        # a = post_route(trajectory)
-        # print(a)
+        a = post_route(trajectory)
+        print(a)
         
         route_update = False
 
         trajectory_original_size = [(int(x * (o_x / new_x)), int(y * (o_y / new_y))) for x, y, _, _ in trajectory]
 
-    #Dibujar la trayectoria
-    for i in range(len(trajectory_original_size) - 1):
-        x1, y1 = trajectory_original_size[i]
-        x2, y2 = trajectory_original_size[i+1]
-
-        cv.line(cutImage, (x1, y1), (x2, y2), (255, 255, 255), 2)
     
 #! video capture
-cap = cv.VideoCapture(1)
+cap = cv.VideoCapture(0)
 
 #? Events -----------------------------------------------------------------------------------------
 cv.namedWindow("Original")
@@ -218,17 +192,17 @@ cv.setMouseCallback("Original", getPoints)
 cv.namedWindow("Parameters")
 cv.resizeWindow("Parameters", 400, 300)
 cv.createTrackbar("Area", "Parameters", 400, 1000, empty)
-cv.createTrackbar("low_1", "Parameters", 71, 255, empty) #36
-cv.createTrackbar("low_2", "Parameters", 92, 255, empty) #73
+cv.createTrackbar("low_1", "Parameters", 52, 255, empty) #36
+cv.createTrackbar("low_2", "Parameters", 17, 255, empty) #73
 cv.createTrackbar("low_3", "Parameters", 0, 255, empty)
-cv.createTrackbar("upp_1", "Parameters", 101, 255, empty) #101
+cv.createTrackbar("upp_1", "Parameters", 98, 255, empty) #101
 cv.createTrackbar("upp_2", "Parameters", 255, 255, empty)
 cv.createTrackbar("upp_3", "Parameters", 255, 255, empty)
 
 #? start  -----------------------------------------------------------------------------------------
 while cap.isOpened():
     ret, frame = cap.read()
-    frame = cv.flip(frame, 1)  # eliminar efecto espejo
+    # frame = cv.flip(frame, 1)  # eliminar efecto espejo
 
     # Control FPS
     time.sleep(0.035)
@@ -249,6 +223,13 @@ while cap.isOpened():
         if cv.waitKey(1) & 0xFF == ord("u"):
             drawCircuit(thresh, cutImage)
 
+        if route_update == False:
+            #Dibujar la trayectoria
+            for i in range(len(trajectory_original_size) - 1):
+                x1, y1 = trajectory_original_size[i]
+                x2, y2 = trajectory_original_size[i+1]
+
+                cv.line(cutImage, (x1, y1), (x2, y2), (255, 255, 255), 2)
 
         # Show
         cv.imshow("Cut", cutImage)
